@@ -209,6 +209,13 @@ add_sdl_test_executable(gamepadmap NEEDS_RESOURCES TESTUTILS gamepadmap.c)
 add_sdl_test_executable(testvulkan testvulkan.c)
 add_sdl_test_executable(testoffscreen testoffscreen.c)
 
+find_package(CURL)
+if(CURL_FOUND)
+    add_sdl_test_executable(testcurl testcurl.c curl_rwops.c curl_rwops.h)
+    target_include_directories(testcurl PRIVATE ${CURL_INCLUDE_DIRS})
+    target_link_libraries(testcurl PRIVATE ${CURL_LIBRARIES})
+endif()
+
 check_c_compiler_flag(-Wformat-overflow HAVE_WFORMAT_OVERFLOW)
 if(HAVE_WFORMAT_OVERFLOW)
     target_compile_definitions(testautomation PRIVATE HAVE_WFORMAT_OVERFLOW)
