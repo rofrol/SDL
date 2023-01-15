@@ -1963,9 +1963,6 @@ elseif(WINDOWS)
   endif()
 
   file(GLOB VERSION_SOURCES ${SDL3_SOURCE_DIR}/src/core/windows/*.rc)
-  if(MINGW OR CYGWIN)
-    list(APPEND SDL_PC_LIBS "-mwindows")
-  endif()
 
 elseif(APPLE)
   # TODO: rework this all for proper macOS, iOS and Darwin support
