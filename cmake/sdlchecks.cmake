@@ -59,8 +59,11 @@ endmacro()
 macro(CheckO_CLOEXEC)
   check_c_source_compiles("
     #include <fcntl.h>
-    int flag = O_CLOEXEC;
-    int main(int argc, char **argv) { return 0; }" HAVE_O_CLOEXEC)
+    int main(int argc, char **argv) {
+      int flag;
+      flag = O_CLOEXEC;
+      return 0;
+    }" HAVE_O_CLOEXEC)
 endmacro()
 
 # Requires:

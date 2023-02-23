@@ -39,8 +39,9 @@
 
 #include "SDL_dbus.h"
 
-#if SDL_USE_LIBDBUS
 #include <sched.h>
+
+#if SDL_USE_LIBDBUS
 
 /* d-bus queries to org.freedesktop.RealtimeKit1. */
 #define RTKIT_DBUS_NODE      "org.freedesktop.RealtimeKit1"

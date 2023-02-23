@@ -328,6 +328,11 @@ if(VITA OR PSP OR PS2 OR N3DS OR RISCOS)
   set(SDL_LOADSO_ENABLED_BY_DEFAULT OFF)
 endif()
 
+if(COSMOPOLITAN)
+  set(SDL_ASSEMBLY_DEFAULT FALSE)
+  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+endif()
+
 # Default to just building the shared library
 if (NOT DEFINED SDL_SHARED_ENABLED_BY_DEFAULT)
   set(SDL_SHARED_ENABLED_BY_DEFAULT ON)
@@ -338,7 +343,7 @@ else()
   set(SDL_STATIC_ENABLED_BY_DEFAULT ON)
 endif()
 
-if (NOT DEFINED SDL_TEST_ENABLED_BY_DEFAULT)
+if(NOT DEFINED SDL_TEST_ENABLED_BY_DEFAULT)
   set(SDL_TEST_ENABLED_BY_DEFAULT ON)
 endif()
 
@@ -955,6 +960,26 @@ if(SDL_ASSEMBLY)
   endif()
 endif()
 
+if(NOT HAVE_MMX)
+  target_compile_definitions(sdl-build-options INTERFACE SDL_DISABLE_MMINTRIN_H)
+endif()
+
+if(NOT HAVE_SSE)
+  target_compile_definitions(sdl-build-options INTERFACE SDL_DISABLE_XMMINTRIN_H)
+endif()
+
+if(NOT HAVE_SSE2)
+  target_compile_definitions(sdl-build-options INTERFACE SDL_DISABLE_EMMINTRIN_H)
+endif()
+
+if(NOT HAVE_SSE3)
+  target_compile_definitions(sdl-build-options INTERFACE SDL_DISABLE_PMMINTRIN_H)
+endif()
+
+if(NOT HAVE_AVX)
+  target_compile_definitions(sdl-build-options INTERFACE SDL_DISABLE_IMMINTRIN_H)
+endif()
+
 # TODO: Can't deactivate on FreeBSD? w/o LIBC, SDL_stdinc.h can't define
 # anything.
 if(SDL_LIBC)
@@ -1015,7 +1040,11 @@ if(SDL_LIBC)
     endforeach()
     check_include_file(linux/input.h HAVE_LINUX_INPUT_H)
 
-    set(STDC_HEADER_NAMES "stddef.h;stdarg.h;stdlib.h;string.h;stdio.h;wchar.h;float.h")
+#    if(COSMOPOLITAN)
+#        set(STDC_HEADER_NAMES )
+#    else()
+        set(STDC_HEADER_NAMES "stddef.h;stdarg.h;stdlib.h;string.h;stdio.h;wchar.h;float.h")
+#    endif()
     # TODO: refine the mprotect check
     check_c_source_compiles("#include <sys/types.h>
                              #include <sys/mman.h>
@@ -1057,7 +1086,11 @@ if(SDL_LIBC)
               sqrtf tan tanf acos acosf asin asinf trunc truncf)
         string(TOUPPER ${_FN} _UPPER)
         set(LIBC_HASVAR "LIBC_HAS_${_UPPER}")
-        check_symbol_exists("${_FN}" "math.h" ${LIBC_HASVAR})
+        set(math_header "math.h")
+#        if(COSMOPOLITAN)
+#          set(math_header "")
+#        endif()
+        check_symbol_exists("${_FN}" "${math_header}" ${LIBC_HASVAR})
         set(HAVE_${_UPPER} ${${LIBC_HASVAR}})
     endforeach()
     if(HAVE_LIBM)
@@ -1159,7 +1192,7 @@ if(UNIX OR APPLE)
   endif()
 endif()
 
-if(UNIX OR APPLE OR HAIKU OR RISCOS)
+if(UNIX OR APPLE OR HAIKU OR RISCOS OR COSMOPOLITAN)
   CheckO_CLOEXEC()
 endif()
 
@@ -2733,6 +2766,17 @@ elseif(N3DS)
     endif()
     list(APPEND SDL_EXTRA_LIBS ${lib})
   endforeach()
+elseif(COSMOPOLITAN)
+  if(SDL_THREADS)
+    set(SDL_THREAD_COSMOPOLITAN 1)
+    file(GLOB GENERIC_THREAD_SOURCES ${SDL3_SOURCE_DIR}/src/thread/generic/*.c)
+    #file(GLOB COSMOPOLITAN_THREAD_SOURCES ${SDL3_SOURCE_DIR}/src/thread/cosmopolitan/*.c)
+    list(APPEND SOURCE_FILES ${GENERIC_THREAD_SOURCES} ${SDL3_SOURCE_DIR}/src/thread/generic/SDL_systls.c)
+    set(HAVE_SDL_THREADS TRUE)
+  endif()
+  
+  # Unconditionally:
+  list(APPEND SOURCE_FILES "${SDL3_SOURCE_DIR}/src/core/linux/SDL_threadprio.c")
 endif()
 
 if(HAVE_VULKAN AND NOT SDL_LOADSO)

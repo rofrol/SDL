@@ -52,14 +52,13 @@ SDL_iconv(SDL_iconv_t cd,
        C runtime's whims. Casting to void * seems to make everyone happy, though. */
     const size_t retCode = iconv((iconv_t)((uintptr_t)cd), (void *)inbuf, inbytesleft, outbuf, outbytesleft);
     if (retCode == (size_t)-1) {
-        switch (errno) {
-        case E2BIG:
+        if (errno ==E2BIG) {
             return SDL_ICONV_E2BIG;
-        case EILSEQ:
+        } else if (errno == EILSEQ) {
             return SDL_ICONV_EILSEQ;
-        case EINVAL:
+        } else if (errno == EINVAL) {
             return SDL_ICONV_EINVAL;
-        default:
+        } else {
             return SDL_ICONV_ERROR;
         }
     }

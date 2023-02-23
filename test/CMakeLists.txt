@@ -13,7 +13,7 @@ include(CMakePushCheckState)
 include(GNUInstallDirs)
 
 set(SDL_TESTS_LINK_SHARED_DEFAULT ON)
-if(EMSCRIPTEN OR N3DS OR PS2 OR PSP OR RISCOS OR VITA)
+if(COSMOPOLITAN OR EMSCRIPTEN OR N3DS OR PS2 OR PSP OR RISCOS OR VITA)
     set(SDL_TESTS_LINK_SHARED_DEFAULT OFF)
 endif()
 
@@ -46,6 +46,12 @@ add_library(sdltests_utils OBJECT
 target_link_libraries(sdltests_utils PRIVATE SDL3::${sdl_name_component})
 
 file(GLOB RESOURCE_FILES *.bmp *.wav *.hex moose.dat utf8.txt)
+set(RESOURCE_FILE_NAMES)
+foreach(RESOURCE_FILE ${RESOURCE_FILES})
+    get_filename_component(res_file_name ${RESOURCE_FILE} NAME)
+    list(APPEND RESOURCE_FILE_NAMES "${res_file_name}")
+endforeach()
+set(EXTRA_EXECUTABLES)
 
 macro(add_sdl_test_executable TARGET)
     cmake_parse_arguments(AST "NONINTERACTIVE;NEEDS_RESOURCES;TESTUTILS" "" "" ${ARGN})
@@ -76,6 +82,7 @@ macro(add_sdl_test_executable TARGET)
             # Make sure resource files get installed into macOS/iOS .app bundles.
             set_target_properties(${TARGET} PROPERTIES RESOURCE "${RESOURCE_FILES}")
         endif()
+        set_property(TARGET ${TARGET} APPEND PROPERTY ADDITIONAL_CLEAN_FILES "$<TARGET_FILE_DIR:${TARGET}>/$<JOIN:${RESOURCE_FILE_NAMES},$<SEMICOLON>$<TARGET_FILE_DIR:${TARGET}>/>")
     endif()
 
     if(WINDOWS)
@@ -89,6 +96,10 @@ macro(add_sdl_test_executable TARGET)
 
     if(OPENGL_FOUND)
         target_compile_definitions(${TARGET} PRIVATE HAVE_OPENGL)
+    endif()
+
+    if(COSMOPOLITAN)
+        list(APPEND EXTRA_EXECUTABLES "$<TARGET_FILE_DIR:${TARGET}>/$<TARGET_FILE_NAME:${TARGET}>$<TARGET_PROPERTY:${TARGET},COSMOPOLITAN_DEBUG_SUFFIX>")
     endif()
 
     if(TARGET sdl-global-options)
@@ -400,6 +411,10 @@ if(SDL_INSTALL_TESTS)
     endif()
     install(
         FILES ${RESOURCE_FILES}
+        DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/installed-tests/SDL3
+    )
+    install(
+        FILES ${EXTRA_EXECUTABLES}
         DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/installed-tests/SDL3
     )
 endif()
