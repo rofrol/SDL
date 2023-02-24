@@ -1,4 +1,4 @@
-name: Build (Nintendo 3DS)
+name: Build (Cosmopolitan)
 
 on: [push, pull_request]
 
@@ -7,26 +7,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  n3ds:
+  cosmopolitan:
     runs-on: ubuntu-latest
-    container:
-      image: devkitpro/devkitarm:latest
     steps:
       - uses: actions/checkout@v3
       - name: Install build requirements
         run: |
-          apt update
-          apt install ninja-build
+          sudo apt-get update
+          sudo apt-get install ninja-build
+      - uses: madebr/cosmopolitan-cmake-toolchain/.github/setup@master
+        id: setup-cosmopolitan
       - name: Configure (CMake)
         run: |
           cmake -S . -B build -G Ninja \
             -Wdeprecated -Wdev -Werror \
-            -DCMAKE_TOOLCHAIN_FILE=${DEVKITPRO}/cmake/3DS.cmake \
-            -DSDL_WERROR=ON \
+            -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-cosmopolitan.outputs.cmake-toolchain-file }} \
             -DSDL_TESTS=ON \
             -DSDL_INSTALL_TESTS=ON \
             -DSDL_VENDOR_INFO="Github Workflow" \
-            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_INSTALL_PREFIX=prefix
       - name: Build (CMake)
         run: |
@@ -42,24 +41,24 @@ jobs:
       - name: Verify CMake configuration files
         run: |
           cmake -S cmake/test -B cmake_config_build -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${DEVKITPRO}/cmake/3DS.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-cosmopolitan.outputs.cmake-toolchain-file }} \
             -DTEST_SHARED=FALSE \
             -DCMAKE_PREFIX_PATH=${{ env.SDL3_DIR }} \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Debug
           cmake --build cmake_config_build --verbose
-      - name: Extract CC/CXX/CFLAGS/CXXFLAGS from CMake toolchain
-        run: |
-          cmake -S .github/cmake -B /tmp/cmake_extract \
-            -DCMAKE_TOOLCHAIN_FILE=${DEVKITPRO}/cmake/3DS.cmake \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DVAR_PATH=/tmp/n3ds_env.txt
-          cat /tmp/n3ds_env.txt >> $GITHUB_ENV
-      - name: Verify sdl3.pc
-        run: |
-          export PKG_CONFIG_PATH=${{ env.SDL3_DIR }}/lib/pkgconfig
-          cmake/test/test_pkgconfig.sh
+#      - name: Extract CC/CXX/CFLAGS/CXXFLAGS from CMake toolchain
+#        run: |
+#          cmake -S .github/cmake -B /tmp/cmake_extract \
+#            -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-cosmopolitan.outputs.cmake-toolchain-file }} \
+#            -DCMAKE_BUILD_TYPE=Release \
+#            -DVAR_PATH=/tmp/cosmo_env.txt
+#          cat /tmp/cosmo_env.txt >> $GITHUB_ENV
+#      - name: Verify sdl3.pc
+#        run: |
+#          export PKG_CONFIG_PATH=${{ env.SDL3_DIR }}/lib/pkgconfig
+#          cmake/test/test_pkgconfig.sh
       - uses: actions/upload-artifact@v3
         with:
           if-no-files-found: error
-          name: SDL-n3ds
+          name: SDL-cosmopolitan
           path: build/dist/SDL3*
