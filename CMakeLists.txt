@@ -402,9 +402,6 @@ else()
   set(SDL3_DEFAULT_TARGET SDL3-static)
 endif()
 
-# The sdl-build-options interface library collects all PRIVATE build options for the SDL libraries
-add_library(sdl-build-options INTERFACE)
-
 # The sdl-shared-build-options interface library collects all PRIVATE build options for the SDL shared library
 add_library(sdl-shared-build-options INTERFACE)
 
@@ -412,20 +409,20 @@ add_library(sdl-shared-build-options INTERFACE)
 add_library(sdl-global-options INTERFACE)
 
 if(WINDOWS_STORE)
-  target_compile_definitions(sdl-build-options INTERFACE "SDL_BUILDING_WINRT=1")
-  target_compile_options(sdl-build-options INTERFACE "-ZW")
+  sdl_compile_definitions(PRIVATE "SDL_BUILDING_WINRT=1")
+  sdl_compile_options(PRIVATE "-ZW")
 endif()
 
 # Build in parallel under Visual Studio. Not enabled by default.
 if(MSVC)
-  target_compile_options(sdl-build-options INTERFACE "/MP")
+  sdl_compile_options(PRIVATE "/MP")
 endif()
 
 # Enable large file support on 32-bit glibc, so that we can access files
 # with large inode numbers
 check_symbol_exists("__GLIBC__" "stdlib.h" LIBC_IS_GLIBC)
 if (LIBC_IS_GLIBC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-    target_compile_definitions(sdl-build-options INTERFACE "_FILE_OFFSET_BITS=64")
+    sdl_compile_definitions(PRIVATE "_FILE_OFFSET_BITS=64")
 endif()
 
 if(CMAKE_VERSION VERSION_LESS "3.26")
@@ -445,7 +442,7 @@ endif()
 
 if(CYGWIN)
   # We build SDL on cygwin without the UNIX emulation layer
-  target_include_directories(sdl-build-options SYSTEM INTERFACE "/usr/include/mingw")
+  sdl_include_directories(SYSTEM PRIVATE "/usr/include/mingw")
   cmake_push_check_state()
   set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mno-cygwin")
   check_c_source_compiles("int main(int argc, char **argv) { return 0; }"
@@ -458,9 +455,9 @@ if(CYGWIN)
 endif()
 
 # General includes
-target_compile_definitions(sdl-build-options INTERFACE "USING_GENERATED_CONFIG_H")
-target_include_directories(sdl-build-options
-  INTERFACE
+sdl_compile_definitions(PRIVATE "USING_GENERATED_CONFIG_H")
+sdl_include_directories(
+  PRIVATE
     "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>"
     "${SDL3_BINARY_DIR}/include"
     "${SDL3_SOURCE_DIR}/include"
@@ -537,11 +534,11 @@ endif()
 set(HAVE_ASSERTIONS ${SDL_ASSERTIONS})
 
 if(NOT SDL_BACKGROUNDING_SIGNAL STREQUAL "OFF")
-  target_compile_definitions(sdl-build-options INTERFACE "SDL_BACKGROUNDING_SIGNAL=${SDL_BACKGROUNDING_SIGNAL}")
+  sdl_compile_definitions(PRIVATE "SDL_BACKGROUNDING_SIGNAL=${SDL_BACKGROUNDING_SIGNAL}")
 endif()
 
 if(NOT SDL_FOREGROUNDING_SIGNAL STREQUAL "OFF")
-  target_compile_definitions(sdl-build-options INTERFACE "SDL_FOREGROUNDING_SIGNAL=${SDL_FOREGROUNDING_SIGNAL}")
+  sdl_compile_definitions(PRIVATE "SDL_FOREGROUNDING_SIGNAL=${SDL_FOREGROUNDING_SIGNAL}")
 endif()
 
 # Compiler option evaluation
@@ -672,7 +669,7 @@ if(USE_GCC OR USE_CLANG)
     # FIXME: don't use deprecated declarations
     check_c_compiler_flag(-Wno-error=deprecated-declarations HAVE_WNO_ERROR_DEPRECATED_DECLARATIONS)
     if(HAVE_WNO_ERROR_DEPRECATED_DECLARATIONS)
-      target_compile_options(sdl-build-options INTERFACE "-Wno-error=deprecated-declarations")
+      sdl_compile_options(PRIVATE "-Wno-error=deprecated-declarations")
     endif()
     cmake_pop_check_state()
 
@@ -711,9 +708,9 @@ if(USE_GCC OR USE_CLANG)
   endif()
 endif()
 if(MSVC)
-  target_compile_definitions(sdl-build-options INTERFACE "_CRT_SECURE_NO_DEPRECATE")
-  target_compile_definitions(sdl-build-options INTERFACE "_CRT_NONSTDC_NO_DEPRECATE")
-  target_compile_definitions(sdl-build-options INTERFACE "_CRT_SECURE_NO_WARNINGS")
+  sdl_compile_definitions(PRIVATE "_CRT_SECURE_NO_DEPRECATE")
+  sdl_compile_definitions(PRIVATE "_CRT_NONSTDC_NO_DEPRECATE")
+  sdl_compile_definitions(PRIVATE "_CRT_SECURE_NO_WARNINGS")
 
   # CET support was added in VS 16.7
   if(MSVC_VERSION GREATER 1926 AND CMAKE_GENERATOR_PLATFORM MATCHES "Win32|x64")
@@ -752,7 +749,7 @@ if(SDL_ASSEMBLY)
           int main(int argc, char **argv) { return 0; }" HAVE_MMX)
       cmake_pop_check_state()
       if(HAVE_MMX)
-        target_compile_options(sdl-build-options INTERFACE "-mmmx")
+        sdl_compile_options(PRIVATE "-mmmx")
       endif()
     endif()
 
@@ -777,7 +774,7 @@ if(SDL_ASSEMBLY)
       cmake_pop_check_state()
       if(CPU_SUPPORTS_SSE)
         set(HAVE_SSE ON)
-        target_compile_options(sdl-build-options INTERFACE "-msse")
+        sdl_compile_options(PRIVATE "-msse")
       endif()
     endif()
 
@@ -802,7 +799,7 @@ if(SDL_ASSEMBLY)
       cmake_pop_check_state()
       if(CPU_SUPPORTS_SSE2)
         set(HAVE_SSE2 TRUE)
-        target_compile_options(sdl-build-options INTERFACE "-msse2")
+        sdl_compile_options(PRIVATE "-msse2")
       endif()
     endif()
 
@@ -827,7 +824,7 @@ if(SDL_ASSEMBLY)
       cmake_pop_check_state()
       if(CPU_SUPPORTS_SSE3)
         set(HAVE_SSE3 TRUE)
-        target_compile_options(sdl-build-options INTERFACE "-msse3")
+        sdl_compile_options(PRIVATE "-msse3")
       endif()
     endif()
 
@@ -836,7 +833,7 @@ if(SDL_ASSEMBLY)
         if(USE_GCC)
           check_c_compiler_flag(-mfpmath=387 HAVE_FP_387)
           if(HAVE_FP_387)
-            target_compile_options(sdl-build-options INTERFACE "-mfpmath=387")
+            sdl_compile_options(PRIVATE "-mfpmath=387")
           endif()
         endif()
       endif()
@@ -863,7 +860,7 @@ if(SDL_ASSEMBLY)
       cmake_pop_check_state()
       if(CPU_SUPPORTS_ALTIVEC OR HAVE_ALTIVEC_H_HDR)
         set(HAVE_ALTIVEC TRUE) # if only HAVE_ALTIVEC_H_HDR is set
-        target_compile_options(sdl-build-options INTERFACE "-maltivec")
+        sdl_compile_options(PRIVATE "-maltivec")
         set(SDL_ALTIVEC_BLITTERS 1)
         if(HAVE_ALTIVEC_H_HDR)
           set(HAVE_ALTIVEC_H 1)
@@ -883,7 +880,7 @@ if(SDL_ASSEMBLY)
       cmake_pop_check_state()
 
       if(CPU_SUPPORTS_LSX AND HAVE_LSXINTRIN_H)
-        target_compile_options(sdl-build-options INTERFACE "-mlsx")
+        sdl_compile_options(PRIVATE "-mlsx")
         set(HAVE_LSX TRUE)
       endif()
     endif()
@@ -899,7 +896,7 @@ if(SDL_ASSEMBLY)
       check_include_file("lasxintrin.h" HAVE_LASXINTRIN_H)
       cmake_pop_check_state()
       if(CPU_SUPPORTS_LASX AND HAVE_LASXINTRIN_H)
-        target_compile_options(sdl-build-options INTERFACE "-mlasx")
+        sdl_compile_options(PRIVATE "-mlasx")
         set(HAVE_LASX TRUE)
       endif()
     endif()
@@ -1308,7 +1305,7 @@ if(ANDROID)
     # find_library(ANDROID_DL_LIBRARY dl)
     # FIXME failing dlopen https://github.com/android-ndk/ndk/issues/929
     list(APPEND SDL_EXTRA_LIBS dl log android)
-    target_compile_definitions(sdl-build-options INTERFACE "GL_GLEXT_PROTOTYPES")
+    sdl_compile_definitions(PRIVATE "GL_GLEXT_PROTOTYPES")
 
     #enable gles
     if(SDL_OPENGLES)
@@ -1343,7 +1340,7 @@ if(ANDROID)
 elseif(EMSCRIPTEN)
   # Hide noisy warnings that intend to aid mostly during initial stages of porting a new
   # project. Uncomment at will for verbose cross-compiling -I/../ path info.
-  target_compile_options(sdl-build-options INTERFACE "-Wno-warn-absolute-paths")
+  sdl_compile_options(PRIVATE "-Wno-warn-absolute-paths")
 
   if(SDL_MISC)
     file(GLOB EMSRIPTEN_MISC_SOURCES ${SDL3_SOURCE_DIR}/src/misc/emscripten/*.c)
@@ -1531,7 +1528,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         pkg_search_module(DBUS dbus-1 dbus)
         if(DBUS_FOUND)
           set(HAVE_DBUS_DBUS_H TRUE)
-          target_include_directories(sdl-build-options SYSTEM INTERFACE ${DBUS_INCLUDE_DIRS})
+          sdl_include_directories(SYSTEM PRIVATE ${DBUS_INCLUDE_DIRS})
           # Fcitx need only dbus.
           set(HAVE_FCITX TRUE)
           set(HAVE_DBUS TRUE)
@@ -1543,7 +1540,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         find_path(HAVE_SYS_INOTIFY_H NAMES sys/inotify.h)
         if(IBUS_FOUND AND HAVE_SYS_INOTIFY_H)
           set(HAVE_IBUS_IBUS_H TRUE)
-          target_include_directories(sdl-build-options SYSTEM INTERFACE ${IBUS_INCLUDE_DIRS})
+          sdl_include_directories(SYSTEM PRIVATE ${IBUS_INCLUDE_DIRS})
           set(HAVE_IBUS TRUE)
         endif()
       endif()
@@ -1556,7 +1553,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         pkg_search_module(INOTIFY libinotify)
         if(INOTIFY_FOUND)
           set(HAVE_INOTIFY 1)
-          target_include_directories(sdl-build-options SYSTEM INTERFACE ${INOTIFY_INCLUDE_DIRS})
+          sdl_include_directories(SYSTEM PRIVATE ${INOTIFY_INCLUDE_DIRS})
           list(APPEND SDL_EXTRA_LIBS ${INOTIFY_LIBRARIES})
         endif()
       endif()
@@ -1709,9 +1706,9 @@ elseif(WINDOWS)
 
   if(MSVC AND NOT SDL_LIBC)
     # Prevent codegen that would use the VC runtime libraries.
-    set_property(DIRECTORY . APPEND PROPERTY COMPILE_OPTIONS "/GS-")
+    sdl_compile_options(PRIVATE "/GS-")
     if(SDL_CPU_X86)
-      set_property(DIRECTORY . APPEND PROPERTY COMPILE_OPTIONS "/arch:SSE")
+      sdl_compile_options(PRIVATE "/arch:SSE")
     endif()
   endif()
 
@@ -1760,8 +1757,8 @@ elseif(WINDOWS)
       set(HAVE_DIRECTX TRUE)
       if(NOT MINGW AND NOT USE_WINSDK_DIRECTX)
       # TODO: change $ENV{DXSDL_DIR} to get the path from the include checks
-        target_link_directories(sdl-build-options INTERFACE "$$ENV{DXSDK_DIR}\\lib\\${PROCESSOR_ARCH}")
-        target_include_directories(sdl-build-options INTERFACE "$ENV{DXSDK_DIR}\\Include")
+        sdl_link_directories(PRIVATE "$$ENV{DXSDK_DIR}\\lib\\${PROCESSOR_ARCH}")
+        sdl_include_directories(SYSTEM PRIVATE "$ENV{DXSDK_DIR}\\Include")
       endif()
     endif()
   endif()
@@ -2488,7 +2485,7 @@ elseif(VITA)
     if(VIDEO_VITA_PVR)
       check_include_file(gpu_es4/psp2_pvr_hint.h HAVE_PVR_H)
       if(HAVE_PVR_H)
-        target_compile_definitions(sdl-build-options INTERFACE "__psp2__")
+        sdl_compile_definitions(PRIVATE "__psp2__")
         set(SDL_VIDEO_OPENGL_EGL 1)
         set(HAVE_OPENGLES TRUE)
         set(SDL_VIDEO_OPENGL_ES 1)
@@ -2557,7 +2554,7 @@ elseif(VITA)
 #  set_property(SOURCE ${SDL3_SOURCE_DIR}/src/video/arm/pixman-arm-simd-asm.S PROPERTY LANGUAGE C)
 #  set_property(SOURCE ${SDL3_SOURCE_DIR}/src/video/arm/pixman-arm-neon-asm.S PROPERTY LANGUAGE C)
 
-  target_compile_definitions(sdl-build-options INTERFACE "__VITA__")
+  sdl_compile_definitions(PRIVATE "__VITA__")
 
 #  CheckPTHREAD()
 
@@ -2624,8 +2621,8 @@ elseif(PSP)
   )
 
 elseif(PS2)
-  target_compile_definitions(sdl-build-options INTERFACE "PS2" "__PS2__")
-  target_include_directories(sdl-build-options INTERFACE "$ENV{PS2SDK}/ports/include" "$ENV{PS2DEV}/gsKit/include")
+  sdl_compile_definitions(PRIVATE "PS2" "__PS2__")
+  sdl_include_directories(SYSTEM PRIVATE "$ENV{PS2SDK}/ports/include" "$ENV{PS2DEV}/gsKit/include")
 
   file(GLOB PS2_CORE_SOURCES ${SDL3_SOURCE_DIR}/src/core/ps2/*.c)
   set(SOURCE_FILES ${SOURCE_FILES} ${PS2_CORE_SOURCES})
@@ -3033,15 +3030,15 @@ if(SDL_TESTS)
   set(HAVE_TESTS ON)
 endif()
 
-get_property(INFO_CFLAGS TARGET sdl-build-options PROPERTY INTERFACE_COMPILE_OPTIONS)
+get_property(INFO_CFLAGS TARGET ${SDL3_DEFAULT_TARGET} PROPERTY COMPILE_OPTIONS)
 list(REMOVE_DUPLICATES INFO_CFLAGS)
 listtostr(INFO_CFLAGS INFO_CFLAGS)
 
-get_property(INFO_INCDIRS TARGET sdl-build-options PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+get_property(INFO_INCDIRS TARGET ${SDL3_DEFAULT_TARGET} PROPERTY INCLUDE_DIRECTORIES)
 list(REMOVE_DUPLICATES INFO_INCDIRS)
 listtostr(INFO_INCDIRS INFO_INCDIRS "-I")
 
-get_property(INFO_DEFS TARGET sdl-build-options PROPERTY INTERFACE_COMPILE_DEFINITIONS)
+get_property(INFO_DEFS TARGET ${SDL3_DEFAULT_TARGET} PROPERTY COMPILE_DEFINITIONS)
 list(REMOVE_DUPLICATES INFO_DEFS)
 listtostr(INFO_DEFS INFO_DEFS "-D")
 
@@ -3129,15 +3126,15 @@ if(WARN_ABOUT_ARM_NEON_ASM_MIT)
 endif()
 
 if(ANDROID)
-  target_include_directories(sdl-build-options SYSTEM INTERFACE "${ANDROID_NDK}/sources/android/cpufeatures")
+  sdl_include_directories(SYSTEM PRIVATE "${ANDROID_NDK}/sources/android/cpufeatures")
 endif()
 
 if(APPLE)
-  target_compile_options(sdl-build-options INTERFACE "-fobjc-arc")
+  sdl_compile_options(PRIVATE "-fobjc-arc")
 endif()
 
 if(PS2)
-  target_compile_options(sdl-build-options INTERFACE "-Wno-error=declaration-after-statement")
+  sdl_compile_options(PRIVATE "-Wno-error=declaration-after-statement")
 endif()
 
 if(APPLE)
@@ -3257,7 +3254,6 @@ if(SDL_SHARED)
   )
   target_link_libraries(SDL3-shared PUBLIC $<TARGET_NAME:SDL3::Headers>)
   # This picks up all the compiler options and such we've accumulated up to here.
-  target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-build-options>)
   target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-shared-build-options>)
   target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-global-options>)
   if(MINGW OR CYGWIN)
@@ -3300,7 +3296,6 @@ if(SDL_STATIC)
   )
   target_link_libraries(SDL3-static PUBLIC $<TARGET_NAME:SDL3::Headers>)
   # This picks up all the compiler options and such we've accumulated up to here.
-  target_link_libraries(SDL3-static PRIVATE $<${build_local_interface}:sdl-build-options>)
   target_link_libraries(SDL3-static PRIVATE $<${build_local_interface}:sdl-global-options>)
   # Use `Compatible Interface Properties` to allow consumers to enforce a shared/static library
   set_property(TARGET SDL3-static PROPERTY INTERFACE_SDL3_SHARED FALSE)
@@ -3310,7 +3305,7 @@ if(SDL_STATIC)
   endif()
 endif()
 
-target_compile_definitions(sdl-build-options INTERFACE
+sdl_compile_definitions(PRIVATE
   "SDL_BUILD_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}"
   "SDL_BUILD_MINOR_VERSION=${PROJECT_VERSION_MINOR}"
   "SDL_BUILD_MICRO_VERSION=${PROJECT_VERSION_PATCH}"

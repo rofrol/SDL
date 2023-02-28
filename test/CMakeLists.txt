@@ -128,9 +128,9 @@ add_sdl_test_executable(testdrawchessboard testdrawchessboard.c)
 add_sdl_test_executable(testdropfile testdropfile.c)
 add_sdl_test_executable(testerror NONINTERACTIVE testerror.c)
 
-if(LINUX AND TARGET sdl-build-options)
+if(LINUX AND (TARGET SDL3-shared OR TARGET SDL3-static))
     add_sdl_test_executable(testevdev NONINTERACTIVE testevdev.c)
-    target_include_directories(testevdev BEFORE PRIVATE $<TARGET_PROPERTY:sdl-build-options,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_include_directories(testevdev BEFORE PRIVATE $<TARGET_PROPERTY:$<IF:$<TARGET_EXISTS:SDL3-shared>,SDL3-shared,SDL3-static>,INCLUDE_DIRECTORIES>)
     target_include_directories(testevdev BEFORE PRIVATE ${SDL3_SOURCE_DIR}/src)
 endif()
 
