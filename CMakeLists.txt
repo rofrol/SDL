@@ -19,25 +19,6 @@ set(SDL_EXTRA_LDFLAGS)
 set(SDL_CMAKE_DEPENDS)
 set(SDL_PC_PRIVATE_REQUIRES)
 
-# The sdl-build-options interface library collects all PRIVATE build options for the SDL libraries
-add_library(sdl-build-options INTERFACE)
-
-# The sdl-shared-build-options interface library collects all PRIVATE build options for the SDL shared library
-add_library(sdl-shared-build-options INTERFACE)
-
-# The sdl-global-options interface library collects all PRIVATE build options for the SDL libraries + test + ...
-add_library(sdl-global-options INTERFACE)
-
-if(WINDOWS_STORE)
-  target_compile_definitions(sdl-build-options INTERFACE "SDL_BUILDING_WINRT=1")
-  target_compile_options(sdl-build-options INTERFACE "-ZW")
-endif()
-
-# Build in parallel under Visual Studio. Not enabled by default.
-if(MSVC)
-  target_compile_options(sdl-build-options INTERFACE "/MP")
-endif()
-
 # CMake 3.0 expands the "if(${A})" in "set(OFF 1);set(A OFF);if(${A})" to "if(1)"
 # CMake 3.24+ emits a warning when not set.
 unset(OFF)
@@ -70,19 +51,6 @@ include(${SDL3_SOURCE_DIR}/cmake/sdlplatform.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/CheckCPUArchitecture.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/GetGitRevisionDescription.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/3rdparty.cmake)
-
-# Enable large file support on 32-bit glibc, so that we can access files
-# with large inode numbers
-check_symbol_exists("__GLIBC__" "stdlib.h" LIBC_IS_GLIBC)
-if (LIBC_IS_GLIBC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-    target_compile_definitions(sdl-build-options INTERFACE "_FILE_OFFSET_BITS=64")
-endif()
-
-if(CMAKE_VERSION VERSION_LESS "3.26")
-  set(build_local_interface "BUILD_INTERFACE")
-else()
-  set(build_local_interface "BUILD_LOCAL_INTERFACE")
-endif()
 
 # Increment this if there is an incompatible change - but if that happens,
 # we should rename the library from SDL3 to SDL4, at which point this would
@@ -264,48 +232,6 @@ if(WINDOWS)
   set(CMAKE_SHARED_LIBRARY_PREFIX "")
 endif()
 
-check_linker_flag(C "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym" HAVE_WL_VERSION_SCRIPT)
-if(HAVE_WL_VERSION_SCRIPT)
-  target_link_libraries(sdl-shared-build-options INTERFACE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym")
-else()
-  if((LINUX AND LIBC_IS_GLIBC) OR ANDROID)
-    message(FATAL_ERROR "Linker does not support '-Wl,--version-script=xxx.sym'. This is required on the current host platform (${SDL_CMAKE_PLATFORM}).")
-  endif()
-endif()
-
-if(CYGWIN)
-  # We build SDL on cygwin without the UNIX emulation layer
-  target_include_directories(sdl-build-options SYSTEM INTERFACE "/usr/include/mingw")
-  cmake_push_check_state()
-  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mno-cygwin")
-  check_c_source_compiles("int main(int argc, char **argv) { return 0; }"
-    HAVE_GCC_NO_CYGWIN)
-  cmake_pop_check_state()
-  if(HAVE_GCC_NO_CYGWIN)
-    target_link_libraries(sdl-shared-build-options INTERFACE "-mno-cygwin")
-  endif()
-  list(APPEND SDL_PC_CFLAGS "-I/usr/include/mingw")
-endif()
-
-# General includes
-target_compile_definitions(sdl-build-options INTERFACE "USING_GENERATED_CONFIG_H")
-target_include_directories(sdl-build-options
-  INTERFACE
-    "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>"
-    "${SDL3_BINARY_DIR}/include"
-    "${SDL3_SOURCE_DIR}/include"
-)
-# Note: The clang toolset for Visual Studio does not support the '-idirafter' option.
-if(USE_GCC OR (USE_CLANG AND NOT MSVC_CLANG))
-  if(CMAKE_VERSION VERSION_LESS 3.12)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -idirafter \"${SDL3_SOURCE_DIR}/src/video/khronos\"")
-  else()
-    target_compile_options(sdl-global-options INTERFACE "SHELL:-idirafter \"${SDL3_SOURCE_DIR}/src/video/khronos\"")
-  endif()
-else()
-  target_include_directories(sdl-global-options SYSTEM INTERFACE "${SDL3_SOURCE_DIR}/src/video/khronos")
-endif()
-
 set(SDL_SHARED_ENABLED_BY_DEFAULT ON)
 set(SDL_STATIC_ENABLED_BY_DEFAULT ON)
 
@@ -454,6 +380,81 @@ cmake_dependent_option(SDL_FRAMEWORK "Build SDL libraries as Apple Framework" OF
 dep_option(SDL_STATIC_PIC      "Static version of the library should be built with Position Independent Code" "${CMAKE_POSITION_INDEPENDENT_CODE}" "SDL_STATIC" OFF)
 dep_option(SDL_TESTS           "Build the test directory" OFF SDL_TEST OFF)
 dep_option(SDL_INSTALL_TESTS   "Install test-cases" OFF "NOT SDL_DISABLE_INSTALL;NOT SDL_FRAMEWORK" OFF)
+
+
+# The sdl-build-options interface library collects all PRIVATE build options for the SDL libraries
+add_library(sdl-build-options INTERFACE)
+
+# The sdl-shared-build-options interface library collects all PRIVATE build options for the SDL shared library
+add_library(sdl-shared-build-options INTERFACE)
+
+# The sdl-global-options interface library collects all PRIVATE build options for the SDL libraries + test + ...
+add_library(sdl-global-options INTERFACE)
+
+if(WINDOWS_STORE)
+  target_compile_definitions(sdl-build-options INTERFACE "SDL_BUILDING_WINRT=1")
+  target_compile_options(sdl-build-options INTERFACE "-ZW")
+endif()
+
+# Build in parallel under Visual Studio. Not enabled by default.
+if(MSVC)
+  target_compile_options(sdl-build-options INTERFACE "/MP")
+endif()
+
+# Enable large file support on 32-bit glibc, so that we can access files
+# with large inode numbers
+check_symbol_exists("__GLIBC__" "stdlib.h" LIBC_IS_GLIBC)
+if (LIBC_IS_GLIBC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    target_compile_definitions(sdl-build-options INTERFACE "_FILE_OFFSET_BITS=64")
+endif()
+
+if(CMAKE_VERSION VERSION_LESS "3.26")
+  set(build_local_interface "BUILD_INTERFACE")
+else()
+  set(build_local_interface "BUILD_LOCAL_INTERFACE")
+endif()
+
+check_linker_flag(C "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym" HAVE_WL_VERSION_SCRIPT)
+if(HAVE_WL_VERSION_SCRIPT)
+  target_link_libraries(sdl-shared-build-options INTERFACE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym")
+else()
+  if((LINUX AND LIBC_IS_GLIBC) OR ANDROID)
+    message(FATAL_ERROR "Linker does not support '-Wl,--version-script=xxx.sym'. This is required on the current host platform (${SDL_CMAKE_PLATFORM}).")
+  endif()
+endif()
+
+if(CYGWIN)
+  # We build SDL on cygwin without the UNIX emulation layer
+  target_include_directories(sdl-build-options SYSTEM INTERFACE "/usr/include/mingw")
+  cmake_push_check_state()
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mno-cygwin")
+  check_c_source_compiles("int main(int argc, char **argv) { return 0; }"
+    HAVE_GCC_NO_CYGWIN)
+  cmake_pop_check_state()
+  if(HAVE_GCC_NO_CYGWIN)
+    target_link_libraries(sdl-shared-build-options INTERFACE "-mno-cygwin")
+  endif()
+  list(APPEND SDL_PC_CFLAGS "-I/usr/include/mingw")
+endif()
+
+# General includes
+target_compile_definitions(sdl-build-options INTERFACE "USING_GENERATED_CONFIG_H")
+target_include_directories(sdl-build-options
+  INTERFACE
+    "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>"
+    "${SDL3_BINARY_DIR}/include"
+    "${SDL3_SOURCE_DIR}/include"
+)
+# Note: The clang toolset for Visual Studio does not support the '-idirafter' option.
+if(USE_GCC OR (USE_CLANG AND NOT MSVC_CLANG))
+  if(CMAKE_VERSION VERSION_LESS 3.12)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -idirafter \"${SDL3_SOURCE_DIR}/src/video/khronos\"")
+  else()
+    target_compile_options(sdl-global-options INTERFACE "SHELL:-idirafter \"${SDL3_SOURCE_DIR}/src/video/khronos\"")
+  endif()
+else()
+  target_include_directories(sdl-global-options SYSTEM INTERFACE "${SDL3_SOURCE_DIR}/src/video/khronos")
+endif()
 
 set(HAVE_STATIC_PIC "${SDL_STATIC_PIC}")
 
