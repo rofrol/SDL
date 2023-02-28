@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
+if(POLICY CMP0112)
+  # Target file component generator expressions do not add target dependencies.
+  cmake_policy(SET CMP0112 NEW)
+endif()
+
+
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
   message(FATAL_ERROR "Prevented in-tree build. Please create a build directory outside of the SDL source code and run \"cmake -S ${CMAKE_SOURCE_DIR} -B .\" from there")
 endif()
