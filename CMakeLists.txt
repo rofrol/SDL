@@ -381,6 +381,25 @@ dep_option(SDL_STATIC_PIC      "Static version of the library should be built wi
 dep_option(SDL_TESTS           "Build the test directory" OFF SDL_TEST OFF)
 dep_option(SDL_INSTALL_TESTS   "Install test-cases" OFF "NOT SDL_DISABLE_INSTALL;NOT SDL_FRAMEWORK" OFF)
 
+# Create SDL targets
+if(SDL_SHARED)
+  add_library(SDL3-shared SHARED )
+  add_library(SDL3::SDL3-shared ALIAS SDL3-shared)
+endif()
+
+if(SDL_STATIC)
+  add_library(SDL3-static STATIC )
+  add_library(SDL3::SDL3-static ALIAS SDL3-static)
+endif()
+
+# Make sure SDL3::SDL3 always exists
+if(TARGET SDL3::SDL3-shared)
+  add_library(SDL3::SDL3 ALIAS SDL3-shared)
+  set(SDL3_DEFAULT_TARGET SDL3-shared)
+else()
+  add_library(SDL3::SDL3 ALIAS SDL3-static)
+  set(SDL3_DEFAULT_TARGET SDL3-static)
+endif()
 
 # The sdl-build-options interface library collects all PRIVATE build options for the SDL libraries
 add_library(sdl-build-options INTERFACE)
@@ -3170,8 +3189,7 @@ else()
 endif()
 
 if(SDL_SHARED)
-  add_library(SDL3-shared SHARED ${SOURCE_FILES} ${VERSION_SOURCES})
-  add_library(SDL3::SDL3-shared ALIAS SDL3-shared)
+  target_sources(SDL3-shared PRIVATE ${SOURCE_FILES} ${VERSION_SOURCES})
   set_target_properties(SDL3-shared PROPERTIES
     OUTPUT_NAME "SDL3"
     POSITION_INDEPENDENT_CODE TRUE
@@ -3255,8 +3273,7 @@ if(SDL_SHARED)
 endif()
 
 if(SDL_STATIC)
-  add_library(SDL3-static STATIC ${SOURCE_FILES})
-  add_library(SDL3::SDL3-static ALIAS SDL3-static)
+  target_sources(SDL3-static PRIVATE ${SOURCE_FILES})
   set_target_properties(SDL3-static PROPERTIES
     OUTPUT_NAME "${sdl_static_libname}"
     POSITION_INDEPENDENT_CODE "${SDL_STATIC_PIC}"
@@ -3576,10 +3593,3 @@ endif()
 
 ##### Fix Objective C builds #####
 set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} ${CMAKE_C_FLAGS}")
-
-# Make sure SDL3::SDL3 always exists
-if(TARGET SDL3::SDL3-shared)
-  add_library(SDL3::SDL3 ALIAS SDL3-shared)
-else()
-  add_library(SDL3::SDL3 ALIAS SDL3-static)
-endif()
