@@ -45,8 +45,7 @@ endif()
 
 set(SDL_TEST_EXECUTABLES)
 
-# FIXME: can be OBJECT library for CMake 3.16
-add_library(sdltests_utils STATIC
+add_library(sdltests_utils OBJECT
     testutils.c
 )
 target_link_libraries(sdltests_utils PRIVATE SDL3::${sdl_name_component})
@@ -70,6 +69,9 @@ macro(add_sdl_test_executable TARGET)
     if(NOT AST_SOURCES)
         message(FATAL_ERROR "add_sdl_test_executable needs at least one source")
     endif()
+    if(AST_TESTUTILS)
+        list(APPEND AST_SOURCES $<TARGET_OBJECTS:sdltests_utils>)
+    endif()
     if(AST_NEEDS_RESOURCES)
         list(APPEND AST_SOURCES ${RESOURCE_FILES})
     endif()
@@ -79,9 +81,6 @@ macro(add_sdl_test_executable TARGET)
         add_executable(${TARGET} ${AST_SOURCES})
     endif()
     target_link_libraries(${TARGET} PRIVATE SDL3::SDL3_test SDL3::${sdl_name_component})
-    if(AST_TESTUTILS)
-        target_link_libraries(${TARGET} PRIVATE sdltests_utils)
-    endif()
     if(NOT AST_NO_C90 AND NOT SDL_CMAKE_PLATFORM MATCHES "^(n3ds|ps2|psp)$")
         set_property(TARGET ${TARGET} PROPERTY C_STANDARD 90)
         set_property(TARGET ${TARGET} PROPERTY C_EXTENSIONS FALSE)
