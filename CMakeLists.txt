@@ -461,12 +461,8 @@ endif()
 
 # General includes
 sdl_compile_definitions(PRIVATE "USING_GENERATED_CONFIG_H")
-sdl_include_directories(
-  PRIVATE
-    "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>"
-    "${SDL3_BINARY_DIR}/include"
-    "${SDL3_SOURCE_DIR}/include"
-)
+sdl_include_directories(PRIVATE "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>")
+sdl_include_directories(PRIVATE "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src>")
 # Note: The clang toolset for Visual Studio does not support the '-idirafter' option.
 if(USE_GCC OR (USE_CLANG AND NOT MSVC_CLANG))
   if(CMAKE_VERSION VERSION_LESS 3.12)
@@ -3179,11 +3175,6 @@ if(SDL_STATIC)
   endif()
   target_compile_definitions(SDL3-static PRIVATE SDL_STATIC_LIB)
   target_link_libraries(SDL3-static PRIVATE ${SDL_EXTRA_LIBS} ${SDL_CMAKE_DEPENDS})
-  target_include_directories(SDL3-static
-    PRIVATE
-      "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
-      "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src>"
-  )
   target_link_libraries(SDL3-static PUBLIC $<TARGET_NAME:SDL3::Headers>)
   # This picks up all the compiler options and such we've accumulated up to here.
   target_link_libraries(SDL3-static PRIVATE $<${build_local_interface}:sdl-global-options>)
@@ -3220,10 +3211,6 @@ if(SDL_TEST)
       )
     endif()
   endif()
-  target_include_directories(SDL3_test
-    PRIVATE
-      "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
-  )
   target_link_libraries(SDL3_test PUBLIC $<TARGET_NAME:SDL3::Headers>)
   target_link_libraries(SDL3_test PRIVATE ${EXTRA_TEST_LIBS})
 endif()
