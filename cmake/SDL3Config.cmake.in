@@ -3,6 +3,7 @@
 cmake_minimum_required(VERSION 3.12)
 # INTERFACE_LINK_OPTIONS needs CMake 3.12
 
+include(CMakeFindDependencyMacro)
 include(FeatureSummary)
 set_package_properties(SDL3 PROPERTIES
   URL "https://www.libsdl.org/"
@@ -60,12 +61,10 @@ else()
   endif()
 endif()
 
-include("${CMAKE_CURRENT_LIST_DIR}/sdlfind.cmake")
-
 set(SDL_ALSA @SDL_ALSA@)
 set(SDL_ALSA_SHARED @SDL_ALSA_SHARED@)
 if(SDL_ALSA AND NOT SDL_ALSA_SHARED AND TARGET SDL3::SDL3-static)
-  sdlFindALSA()
+  find_dependency(ALSA)
 endif()
 unset(SDL_ALSA)
 unset(SDL_ALSA_SHARED)

@@ -50,7 +50,6 @@ find_package(PkgConfig)
 list(APPEND CMAKE_MODULE_PATH "${SDL3_SOURCE_DIR}/cmake")
 include(${SDL3_SOURCE_DIR}/cmake/macros.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdlchecks.cmake)
-include(${SDL3_SOURCE_DIR}/cmake/sdlfind.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdltargets.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdlplatform.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/CheckCPUArchitecture.cmake)
@@ -3314,8 +3313,6 @@ else()
   endif()
 endif()
 
-configure_file("cmake/sdlfind.cmake" "sdlfind.cmake" COPYONLY)
-
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/SDL3Config.cmake.in SDL3Config.cmake
   PATH_VARS CMAKE_INSTALL_PREFIX
@@ -3436,7 +3433,6 @@ if(NOT SDL_DISABLE_INSTALL)
   install(FILES
       ${CMAKE_CURRENT_BINARY_DIR}/SDL3Config.cmake
       ${CMAKE_CURRENT_BINARY_DIR}/SDL3ConfigVersion.cmake
-      ${SDL3_SOURCE_DIR}/cmake/sdlfind.cmake
     DESTINATION "${SDL_SDL_INSTALL_REAL_CMAKEDIR}"
   )
 

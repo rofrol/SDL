@@ -90,7 +90,7 @@ endmacro()
 # - HAVE_SDL_LOADSO opt
 macro(CheckALSA)
   if(SDL_ALSA)
-    sdlFindALSA()
+    find_package(ALSA)
     if(ALSA_FOUND)
       sdl_glob_private_sources(${SDL3_SOURCE_DIR}/src/audio/alsa/*.c)
       set(SDL_AUDIO_DRIVER_ALSA 1)
