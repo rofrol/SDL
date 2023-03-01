@@ -1,5 +1,8 @@
 # SDL cmake project-config input for CMakeLists.txt script
 
+cmake_minimum_required(VERSION 3.12)
+# INTERFACE_LINK_OPTIONS needs CMake 3.12
+
 include(FeatureSummary)
 set_package_properties(SDL3 PROPERTIES
   URL "https://www.libsdl.org/"

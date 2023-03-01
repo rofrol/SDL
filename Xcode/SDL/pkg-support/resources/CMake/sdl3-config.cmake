@@ -1,8 +1,7 @@
 # SDL CMake configuration file:
 # This file is meant to be placed in Resources/CMake of a SDL3 framework
 
-# INTERFACE_LINK_OPTIONS needs CMake 3.12
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.0)
 
 include(FeatureSummary)
 set_package_properties(SDL3 PROPERTIES
