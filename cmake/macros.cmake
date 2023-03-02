@@ -111,7 +111,7 @@ function(message_dictlist inList)
   endforeach()
 endfunction()
 
-if(CMAKE_VERSION VERSION_LESS 3.16.0 OR SDL3_SUBPROJECT)
+if(SDL3_SUBPROJECT)
   # - CMake versions <3.16 do not support the OBJC language
   # - When SDL is built as a subproject and when the main project does not enable OBJC,
   #   CMake fails due to missing internal CMake variables (CMAKE_OBJC_COMPILE_OBJECT)
@@ -154,10 +154,4 @@ if(APPLE)
   if(NOT CMAKE_OBJC_COMPILER)
     message(WARNING "Cannot find working OBJC compiler.")
   endif()
-endif()
-
-if(CMAKE_VERSION VERSION_LESS 3.13.0)
-  macro(target_link_directories _TARGET _SCOPE)
-    link_directories(${ARGN})
-  endmacro()
 endif()
