@@ -3277,13 +3277,13 @@ if(NOT SDL_DISABLE_INSTALL)
   endif()
 
   # Clean up the different lists
-  get_property(sdl_private_link_libraries TARGET sdl-pkgconfig-options PROPERTY INTERFACE_LINK_LIBRARIES)
+  get_property(sdl_private_link_libraries DIRECTORY "${SDL3_BINARY_DIR}" PROPERTY SDL_PKGCONFIG_PRIVATE_LIBRARIES)
   listtostr(sdl_private_link_libraries SDL_PC_PRIVATE_LIBS_L "-l")
 
-  get_property(sdl_private_link_options TARGET sdl-pkgconfig-options PROPERTY INTERFACE_LINK_OPTIONS)
+  get_property(sdl_private_link_options DIRECTORY "${SDL3_BINARY_DIR}" PROPERTY SDL_PKGCONFIG_PRIVATE_LINK_OPTIONS)
   set(SDL_PC_STATIC_LIBS ${sdl_private_link_options} ${SDL_PC_PRIVATE_LIBS_L})
 
-  get_property(SDL_PC_PRIVATE_REQUIRES TARGET sdl-pkgconfig-options PROPERTY PKGCONFIG_REQUIRES)
+  get_property(SDL_PC_PRIVATE_REQUIRES DIRECTORY "${SDL3_BINARY_DIR}" PROPERTY SDL_PKGCONFIG_PRIVATE_REQUIRES)
 
   list(REMOVE_DUPLICATES SDL_PC_STATIC_LIBS)
   listtostr(SDL_PC_STATIC_LIBS SDL_PC_STATIC_LIBS)

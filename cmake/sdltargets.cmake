@@ -1,12 +1,26 @@
-include_guard()
-
-define_property(TARGET
-  PROPERTY PKGCONFIG_REQUIRES
+define_property(DIRECTORY
+  PROPERTY SDL_PKGCONFIG_PRIVATE_REQUIRES
   BRIEF_DOCS "pkg-config requirement when using a static SDL library"
   FULL_DOCS "pkg-config requirement when using a static SDL library"
 )
 
-add_library(sdl-pkgconfig-options INTERFACE )
+define_property(DIRECTORY
+    PROPERTY SDL_PKGCONFIG_INTERFACE_COMPILE_OPTIONS
+    BRIEF_DOCS "pkg-config compile options when using a (shared) SDL library"
+    FULL_DOCS "pkg-config compile options when using a (shared) SDL library"
+)
+
+define_property(DIRECTORY
+  PROPERTY SDL_PKGCONFIG_PRIVATE_LIBRARIES
+  BRIEF_DOCS "pkg-config libraries when using a static SDL library"
+  FULL_DOCS "pkg-config libraries when using a static SDL library"
+)
+
+define_property(DIRECTORY
+  PROPERTY SDL_PKGCONFIG_PRIVATE_LINK_OPTIONS
+  BRIEF_DOCS "pkg-config link options when using a static SDL library"
+  FULL_DOCS "pkg-config link options when using a static SDL library"
+)
 
 function(sdl_private_sources )
   if(TARGET SDL3-shared)
@@ -53,7 +67,9 @@ function(sdl_compile_definitions)
     target_compile_definitions(SDL3-static PUBLIC ${ST_PUBLIC} PRIVATE ${ST_PRIVATE} INTERFACE ${ST_INTERFACE})
   endif()
   if(ST_CMAKE_PC OR ST_PC)
-    target_compile_definitions(sdl-pkgconfig-options INTERFACE ${ST_PUBLIC} ${ST_INTERFACE})
+    foreach(var IN LISTS ST_PUBLIC ST_INTERFACE)
+      set_property(DIRECTORY "${SDL3_BINARY_DIR}" APPEND PROPERTY SDL_PKGCONFIG_INTERFACE_COMPILE_OPTIONS "-D${var}")
+    endforeach()
   endif()
 endfunction()
 
@@ -86,7 +102,7 @@ function(sdl_private_link_options )
   if(TARGET SDL3-static)
     target_link_options(SDL3-static INTERFACE ${ST_CMAKE_PC} ${ST_CMAKE})
   endif()
-  set_property(TARGET sdl-pkgconfig-options APPEND PROPERTY INTERFACE_LINK_OPTIONS ${ST_CMAKE_PC} ${ST_PC})
+  set_property(DIRECTORY "${SDL3_BINARY_DIR}" APPEND PROPERTY SDL_PKGCONFIG_PRIVATE_LINK_OPTIONS ${ST_CMAKE_PC} ${ST_PC})
 endfunction()
 
 function(sdl_private_link_libraries )
@@ -100,6 +116,7 @@ function(sdl_private_link_libraries )
   if(TARGET SDL3-static)
     target_link_libraries(SDL3-static PRIVATE ${ST_CMAKE_PC} ${ST_CMAKE})
   endif()
-  set_property(TARGET sdl-pkgconfig-options APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${ST_CMAKE_PC} ${ST_PC})
-  set_property(TARGET sdl-pkgconfig-options APPEND PROPERTY PKGCONFIG_REQUIRES ${ST_PC_REQUIRES})
+
+  set_property(DIRECTORY "${SDL3_BINARY_DIR}" APPEND PROPERTY SDL_PKGCONFIG_PRIVATE_LIBRARIES ${ST_CMAKE_PC} ${ST_PC})
+  set_property(DIRECTORY "${SDL3_BINARY_DIR}" APPEND PROPERTY SDL_PKGCONFIG_PRIVATE_REQUIRES ${ST_PC_REQUIRES})
 endfunction()

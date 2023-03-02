@@ -669,6 +669,7 @@ macro(CheckVivante)
         find_library(VIVANTE_VDK_LIBRARY VDK REQUIRED)
         sdl_private_link_libraries(CMAKE_PC ${VIVANTE_LIBRARY} ${VIVANTE_VDK_LIBRARY})
       else()
+        # These defines are needed when including the system EGL headers.
         sdl_compile_definitions(CMAKE_PC PUBLIC LINUX EGL_API_FB)
         sdl_private_link_libraries(CMAKE_PC "EGL")
       endif(HAVE_VIVANTE_VDK)
