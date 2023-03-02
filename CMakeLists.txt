@@ -18,11 +18,6 @@ else()
   set(SDL3_SUBPROJECT ON)
 endif()
 
-set(SDL_EXTRA_LIBS)
-
-set(SDL_CMAKE_DEPENDS)
-set(SDL_PC_PRIVATE_REQUIRES)
-
 # CMake 3.0 expands the "if(${A})" in "set(OFF 1);set(A OFF);if(${A})" to "if(1)"
 # CMake 3.24+ emits a warning when not set.
 unset(OFF)
@@ -456,7 +451,7 @@ if(CYGWIN)
   if(HAVE_GCC_NO_CYGWIN AND TARGET SDL3-shared)
     target_link_options(SDL3-shared PRIVATE "-mno-cygwin")
   endif()
-  list(APPEND SDL_PC_CFLAGS "-I/usr/include/mingw")
+  sdl_include_directories(PRIVATE "/usr/include/mingw")
 endif()
 
 # General includes
@@ -675,8 +670,8 @@ if(USE_GCC OR USE_CLANG)
     cmake_pop_check_state()
 
     if(CMAKE_VERSION VERSION_LESS "3.6")
-      target_link_options(SDL3-shared PRIVATE -Wl,-compatibility_version,${SDL_DYLIB_COMPAT_VERSION}")
-      target_link_options(SDL3-shared PRIVATE -Wl,-current_version,${SDL_DYLIB_CURRENT_VERSION}")
+      target_link_options(SDL3-shared PRIVATE "-Wl,-compatibility_version,${SDL_DYLIB_COMPAT_VERSION}")
+      target_link_options(SDL3-shared PRIVATE "-Wl,-current_version,${SDL_DYLIB_CURRENT_VERSION}")
     endif()
   elseif(NOT OPENBSD)
     cmake_push_check_state()
@@ -1083,14 +1078,14 @@ if(SDL_LIBC)
     if(HAVE_LIBM)
       cmake_pop_check_state()
       if(NOT VITA)
-        list(APPEND SDL_EXTRA_LIBS m)
+        sdl_private_link_libraries(CMAKE_PC m)
       endif()
     endif()
 
     if(SDL_SYSTEM_ICONV)
       check_library_exists(iconv iconv_open "" HAVE_LIBICONV)
       if(HAVE_LIBICONV)
-        list(APPEND SDL_EXTRA_LIBS iconv)
+        sdl_private_link_libraries(CMAKE_PC iconv)
         set(HAVE_ICONV 1)
         set(HAVE_SYSTEM_ICONV TRUE)
       else()
@@ -1228,7 +1223,7 @@ if(ANDROID)
     set(SDL_AUDIO_DRIVER_OPENSLES 1)
     sdl_glob_private_sources(${SDL3_SOURCE_DIR}/src/audio/openslES/*.c)
 
-    list(APPEND SDL_EXTRA_LIBS ${ANDROID_DL_LIBRARY} OpenSLES)
+    sdl_private_link_libraries(CMAKE_PC ${ANDROID_DL_LIBRARY} OpenSLES)
 
     set(SDL_AUDIO_DRIVER_AAUDIO 1)
     sdl_glob_private_sources(${SDL3_SOURCE_DIR}/src/audio/aaudio/*.c)
@@ -1285,7 +1280,7 @@ if(ANDROID)
     # Core stuff
     # find_library(ANDROID_DL_LIBRARY dl)
     # FIXME failing dlopen https://github.com/android-ndk/ndk/issues/929
-    list(APPEND SDL_EXTRA_LIBS dl log android)
+    sdl_private_link_libraries(CMAKE_PC dl log android)
     sdl_compile_definitions(PRIVATE "GL_GLEXT_PROTOTYPES")
 
     #enable gles
@@ -1296,7 +1291,7 @@ if(ANDROID)
       set(SDL_VIDEO_OPENGL_ES2 1)
       set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-      list(APPEND SDL_EXTRA_LIBS GLESv1_CM GLESv2)
+      sdl_private_link_libraries(CMAKE_PC GLESv1_CM GLESv2)
     endif()
 
     if(SDL_VULKAN)
@@ -1520,11 +1515,12 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
       endif()
 
       if(FREEBSD AND NOT HAVE_INOTIFY)
+        # FIXME: use imported target
         pkg_search_module(INOTIFY libinotify)
         if(INOTIFY_FOUND)
           set(HAVE_INOTIFY 1)
           sdl_include_directories(SYSTEM PRIVATE ${INOTIFY_INCLUDE_DIRS})
-          list(APPEND SDL_EXTRA_LIBS ${INOTIFY_LIBRARIES})
+          sdl_private_link_libraries(CMAKE_PC ${INOTIFY_LIBRARIES})
         endif()
       endif()
 
@@ -1532,9 +1528,10 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         # We've already found the header, so link the lib if present.
         # NB: This .pc file is not present on FreeBSD where the implicitly
         # linked base system libgcc_s includes all libunwind ABI.
+        # FIXME: use imported target
         pkg_search_module(UNWIND libunwind)
         pkg_search_module(UNWIND_GENERIC libunwind-generic)
-        list(APPEND EXTRA_TEST_LIBS ${UNWIND_LIBRARIES} ${UNWIND_GENERIC_LIBRARIES})
+        sdl_private_link_libraries(CMAKE_PC ${UNWIND_LIBRARIES} ${UNWIND_GENERIC_LIBRARIES})
       endif()
     endif()
 
@@ -1602,7 +1599,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
       check_library_exists(rt clock_gettime "" FOUND_CLOCK_GETTIME_LIBRT)
       if(FOUND_CLOCK_GETTIME_LIBRT)
         set(HAVE_CLOCK_GETTIME 1)
-        list(APPEND SDL_EXTRA_LIBS rt)
+        sdl_private_link_libraries(CMAKE_PC rt)
       endif()
     endif()
   endif()
@@ -1859,13 +1856,17 @@ elseif(WINDOWS)
 
   # Libraries for Win32 native and MinGW
   if(NOT WINDOWS_STORE)
-    list(APPEND SDL_EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
+    sdl_private_link_libraries(CMAKE_PC user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
   endif()
 
   if(WINDOWS_STORE)
-    list(APPEND SDL_EXTRA_LIBS
-      -nodefaultlib:vccorlib$<$<CONFIG:Debug>:d>
-      -nodefaultlib:msvcrt$<$<CONFIG:Debug>:d>
+    if(TARGET SDL3-shared)
+      sdl_private_link_options(CMAKE
+        -nodefaultlib:vccorlib$<$<CONFIG:Debug>:d>
+        -nodefaultlib:msvcrt$<$<CONFIG:Debug>:d>
+      )
+    endif()
+    sdl_private_link_libraries(CMAKE
       vccorlib$<$<CONFIG:Debug>:d>.lib
       msvcrt$<$<CONFIG:Debug>:d>.lib
     )
@@ -1918,7 +1919,7 @@ elseif(WINDOWS)
     endif()
     if(HAVE_DINPUT_H)
       set(SDL_JOYSTICK_DINPUT 1)
-      list(APPEND SDL_EXTRA_LIBS dinput8)
+      sdl_private_link_libraries(CMAKE_PC dinput8)
     endif()
     if(HAVE_XINPUT_H)
       if(NOT WINDOWS_STORE)
@@ -2158,71 +2159,71 @@ elseif(APPLE)
 
   # Actually load the frameworks at the end so we don't duplicate include.
   if(SDL_FRAMEWORK_COREVIDEO)
-    sdl_private_link_options("-Wl,-framework,CoreVideo")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,CoreVideo")
   endif()
   if(SDL_FRAMEWORK_COCOA)
-    sdl_private_link_options("-Wl,-framework,Cocoa")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,Cocoa")
   endif()
   if(SDL_FRAMEWORK_IOKIT)
-    sdl_private_link_options("-Wl,-framework,IOKit")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,IOKit")
   endif()
   if(SDL_FRAMEWORK_FF)
-    sdl_private_link_options("-Wl,-framework,ForceFeedback")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,ForceFeedback")
   endif()
   if(SDL_FRAMEWORK_CARBON)
-    sdl_private_link_options("-Wl,-framework,Carbon")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,Carbon")
   endif()
   if(SDL_FRAMEWORK_COREAUDIO)
-    sdl_private_link_options("-Wl,-framework,CoreAudio")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,CoreAudio")
   endif()
   if(SDL_FRAMEWORK_AUDIOTOOLBOX)
-    sdl_private_link_options("-Wl,-framework,AudioToolbox")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,AudioToolbox")
   endif()
   if(SDL_FRAMEWORK_AVFOUNDATION)
-    sdl_private_link_options("-Wl,-framework,AVFoundation")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,AVFoundation")
   endif()
   if(SDL_FRAMEWORK_COREBLUETOOTH)
-    sdl_private_link_options("-Wl,-framework,CoreBluetooth")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,CoreBluetooth")
   endif()
   if(SDL_FRAMEWORK_COREGRAPHICS)
-    sdl_private_link_options("-Wl,-framework,CoreGraphics")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,CoreGraphics")
   endif()
   if(SDL_FRAMEWORK_COREMOTION)
-    sdl_private_link_options("-Wl,-framework,CoreMotion")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,CoreMotion")
   endif()
   if(SDL_FRAMEWORK_FOUNDATION)
-    sdl_private_link_options("-Wl,-framework,Foundation")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,Foundation")
   endif()
   if(SDL_FRAMEWORK_GAMECONTROLLER)
     find_library(GAMECONTROLLER GameController)
     if(GAMECONTROLLER)
-      sdl_private_link_options("-Wl,-weak_framework,GameController")
+      sdl_private_link_options(CMAKE_PC "-Wl,-weak_framework,GameController")
     endif()
   endif()
   if(SDL_FRAMEWORK_METAL)
     if(IOS OR TVOS)
-      sdl_private_link_options("-Wl,-framework,Metal")
+      sdl_private_link_options(CMAKE_PC "-Wl,-framework,Metal")
     else()
-      sdl_private_link_options("-Wl,-weak_framework,Metal")
+      sdl_private_link_options(CMAKE_PC "-Wl,-weak_framework,Metal")
     endif()
   endif()
   if(SDL_FRAMEWORK_OPENGLES)
-    sdl_private_link_options("-Wl,-framework,OpenGLES")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,OpenGLES")
   endif()
   if(SDL_FRAMEWORK_QUARTZCORE)
     if(IOS OR TVOS)
-      sdl_private_link_options("-Wl,-framework,QuartzCore")
+      sdl_private_link_options(CMAKE_PC "-Wl,-framework,QuartzCore")
     else()
-      sdl_private_link_options("-Wl,-weak_framework,QuartzCore")
+      sdl_private_link_options(CMAKE_PC "-Wl,-weak_framework,QuartzCore")
     endif()
   endif()
   if(SDL_FRAMEWORK_UIKIT)
-    sdl_private_link_options("-Wl,-framework,UIKit")
+    sdl_private_link_options(CMAKE_PC "-Wl,-framework,UIKit")
   endif()
   if(SDL_FRAMEWORK_COREHAPTICS)
     find_library(COREHAPTICS CoreHaptics)
     if(COREHAPTICS)
-      sdl_private_link_options("-Wl,-weak_framework,CoreHaptics")
+      sdl_private_link_options(CMAKE_PC "-Wl,-weak_framework,CoreHaptics")
     endif()
   endif()
 
@@ -2256,7 +2257,7 @@ elseif(HAIKU)
       set(SDL_VIDEO_OPENGL 1)
       set(SDL_VIDEO_OPENGL_HAIKU 1)
       set(SDL_VIDEO_RENDER_OGL 1)
-      list(APPEND SDL_EXTRA_LIBS GL)
+      sdl_private_link_libraries(CMAKE_PC GL)
       set(HAVE_OPENGL TRUE)
     endif()
   endif()
@@ -2287,7 +2288,7 @@ elseif(HAIKU)
   sdl_glob_private_sources(${SDL3_SOURCE_DIR}/src/core/haiku/*.cc)
 
   CheckPTHREAD()
-  list(APPEND SDL_EXTRA_LIBS root be media game device textencoding)
+  sdl_private_link_libraries(CMAKE_PC root be media game device textencoding)
 
 elseif(RISCOS)
   if(SDL_MISC)
@@ -2392,7 +2393,7 @@ elseif(VITA)
 
       if(HAVE_PIGS_IN_BLANKET_H)
         set(SDL_VIDEO_OPENGL_ES2 1)
-        list(APPEND SDL_EXTRA_LIBS
+        sdl_private_link_libraries(CMAKE_PC
           pib
           libScePiglet_stub_weak
           taihen_stub_weak
@@ -2415,7 +2416,7 @@ elseif(VITA)
         set(SDL_VIDEO_OPENGL_ES2 1)
         set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-        list(APPEND SDL_EXTRA_LIBS
+        sdl_private_link_libraries(CMAKE_PC
           libgpu_es4_ext_stub_weak
           libIMGEGL_stub_weak
           SceIme_stub
@@ -2430,7 +2431,7 @@ elseif(VITA)
             set(HAVE_OPENGL TRUE)
             set(SDL_VIDEO_OPENGL 1)
             set(SDL_VIDEO_RENDER_OGL 1)
-            list(APPEND SDL_EXTRA_LIBS libGL_stub)
+            sdl_private_link_libraries(CMAKE_PC libGL_stub)
             set(SDL_VIDEO_VITA_PVR_OGL 1)
           endif()
         endif()
@@ -2442,7 +2443,7 @@ elseif(VITA)
 
     set(SDL_VIDEO_RENDER_VITA_GXM 1)
 
-    list(APPEND SDL_EXTRA_LIBS
+    sdl_private_link_libraries(CMAKE_PC
       SceGxm_stub
       SceDisplay_stub
       SceCtrl_stub
@@ -2522,7 +2523,7 @@ elseif(PSP)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
 
-  list(APPEND SDL_EXTRA_LIBS
+  sdl_private_link_libraries(CMAKE_PC
       GL
       pspvram
       pspaudio
@@ -2582,7 +2583,7 @@ elseif(PS2)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
 
-  list(APPEND SDL_EXTRA_LIBS
+  sdl_privata_link_libraries(CMAKE_PC
     patches
     gskit
     dmakit
@@ -2660,7 +2661,7 @@ elseif(N3DS)
     if(lib MATCHES "^-l")
       string(SUBSTRING "${lib}" 2 -1 lib)
     endif()
-    list(APPEND SDL_EXTRA_LIBS ${lib})
+    sdl_private_link_libraries(PC ${lib})
   endforeach()
 endif()
 
@@ -2769,9 +2770,6 @@ file(GENERATE
     INPUT "${SDL3_BINARY_DIR}/SDL_build_config.h.intermediate")
 
 # Prepare the flags and remove duplicates
-if(SDL_EXTRA_LIBS)
-  list(REMOVE_DUPLICATES SDL_EXTRA_LIBS)
-endif()
 if(EXTRA_CFLAGS)
   list(REMOVE_DUPLICATES EXTRA_CFLAGS)
 endif()
@@ -2944,8 +2942,8 @@ listtostr(INFO_CHECKS INFO_CHECKS)
 get_property(sdl_private_link_options TARGET ${SDL3_DEFAULT_TARGET} PROPERTY LINK_OPTIONS)
 listtostr(sdl_private_link_options info_sdl_private_link_options)
 
-listtostr(SDL_EXTRA_LIBS INFO_EXTRA_LIBS)
-listtostr(SDL_CMAKE_DEPENDS INFO_CMAKE_DEPENDS)
+get_property(INFO_EXTRA_LIBS_LIST TARGET ${SDL3_DEFAULT_TARGET} PROPERTY LINK_LIBRARIES)
+listtostr(INFO_EXTRA_LIBS_LIST INFO_EXTRA_LIBS)
 
 ##### Info output #####
 message(STATUS "")
@@ -3137,7 +3135,7 @@ if(SDL_SHARED)
     endif()
     set_target_properties(SDL3-shared PROPERTIES STATIC_LIBRARY_FLAGS "/NODEFAULTLIB")
   endif()
-  target_link_libraries(SDL3-shared PRIVATE ${SDL_EXTRA_LIBS} ${SDL_CMAKE_DEPENDS})
+  target_link_libraries(SDL3-shared PRIVATE ${SDL_EXTRA_LIBS})
   target_link_libraries(SDL3-shared PUBLIC $<TARGET_NAME:SDL3::Headers>)
   # This picks up all the compiler options and such we've accumulated up to here.
   target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-shared-build-options>)
@@ -3314,11 +3312,13 @@ if(NOT SDL_DISABLE_INSTALL)
   endif()
 
   # Clean up the different lists
-  listtostr(SDL_EXTRA_LIBS EXTRA_LIBS_L "-l")
+  get_property(sdl_private_link_libraries TARGET sdl-pkgconfig-options PROPERTY INTERFACE_LINK_LIBRARIES)
+  listtostr(sdl_private_link_libraries SDL_PC_PRIVATE_LIBS_L "-l")
 
-  get_property(sdl_private_link_options TARGET ${SDL3_DEFAULT_TARGET} PROPERTY LINK_OPTIONS)
-  get_property(sdl_interface_link_options TARGET ${SDL3_DEFAULT_TARGET} PROPERTY INTERFACE_LINK_OPTIONS)
-  set(SDL_PC_STATIC_LIBS ${sdl_private_link_options} ${sdl_interface_link_options} ${EXTRA_LIBS_L})
+  get_property(sdl_private_link_options TARGET sdl-pkgconfig-options PROPERTY INTERFACE_LINK_OPTIONS)
+  set(SDL_PC_STATIC_LIBS ${sdl_private_link_options} ${SDL_PC_PRIVATE_LIBS_L})
+
+  get_property(SDL_PC_PRIVATE_REQUIRES TARGET sdl-pkgconfig-options PROPERTY PKGCONFIG_REQUIRES)
 
   list(REMOVE_DUPLICATES SDL_PC_STATIC_LIBS)
   listtostr(SDL_PC_STATIC_LIBS SDL_PC_STATIC_LIBS)
