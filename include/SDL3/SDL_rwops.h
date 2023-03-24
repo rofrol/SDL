@@ -103,7 +103,7 @@ typedef struct SDL_RWops
     Uint32 type;
     union
     {
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
         struct
         {
             void *asset;

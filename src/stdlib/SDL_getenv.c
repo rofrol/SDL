@@ -24,7 +24,7 @@
 #include "../core/windows/SDL_windows.h"
 #endif
 
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
 #include "../core/android/SDL_android.h"
 #endif
 
@@ -164,7 +164,7 @@ int SDL_setenv(const char *name, const char *value, int overwrite)
 char *
 SDL_getenv(const char *name)
 {
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
     /* Make sure variables from the application manifest are available */
     Android_JNI_GetManifestEnvironmentVariables();
 #endif

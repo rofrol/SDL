@@ -48,7 +48,7 @@
 #if !defined(SDL_DISABLE_SYSWM_PLATFORMS)
 
 #ifndef SDL_DISABLE_SYSWM_ANDROID
-#ifdef __ANDROID__
+#ifdef SDL_PLATFORM_ANDROID
 #define SDL_ENABLE_SYSWM_ANDROID
 #endif
 #endif /* !SDL_DISABLE_SYSWM_ANDROID */
@@ -106,7 +106,7 @@
 #endif /* !SDL_DISABLE_SYSWM_WINRT */
 
 #ifndef SDL_DISABLE_SYSWM_X11
-#if defined(__unix__) && !defined(__WIN32__) && !defined(__ANDROID__)
+#if defined(__unix__) && !defined(__WIN32__) && !defined(SDL_PLATFORM_ANDROID)
 #define SDL_ENABLE_SYSWM_X11
 #endif
 #endif /* !SDL_DISABLE_SYSWM_X11 */

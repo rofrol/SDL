@@ -43,7 +43,7 @@
 #include "n3ds/SDL_rwopsromfs.h"
 #endif /* __3DS__ */
 
-#ifdef __ANDROID__
+#ifdef SDL_PLATFORM_ANDROID
 #include "../core/android/SDL_android.h"
 #endif
 
@@ -508,7 +508,7 @@ SDL_RWFromFile(const char *file, const char *mode)
         SDL_SetError("SDL_RWFromFile(): No file or no mode specified");
         return NULL;
     }
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
 #ifdef HAVE_STDIO_H
     /* Try to open the file on the filesystem first */
     if (*file == '/') {

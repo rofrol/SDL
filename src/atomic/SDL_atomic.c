@@ -38,7 +38,7 @@
 #if __has_builtin(__atomic_load_n) || defined(HAVE_GCC_ATOMICS)
 /* !!! FIXME: this advertises as available in the NDK but uses an external symbol we don't have.
    It might be in a later NDK or we might need an extra library? --ryan. */
-#if !defined(__ANDROID__)
+#if !defined(SDL_PLATFORM_ANDROID)
 #define HAVE_ATOMIC_LOAD_N 1
 #endif
 #endif

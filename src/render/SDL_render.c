@@ -27,7 +27,7 @@
 #include "../video/SDL_pixels_c.h"
 #include "../video/SDL_video_c.h"
 
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
 #include "../core/android/SDL_android.h"
 #endif
 
@@ -37,7 +37,7 @@ SDL_AddEventWatch to catch SDL_EVENT_WILL_ENTER_BACKGROUND events and stopped
 drawing themselves. Other platforms still draw, as the compositor can use it,
 and more importantly: drawing to render targets isn't lost. But I still think
 this should probably be removed at some point in the future.  --ryan. */
-#if defined(__IOS__) || defined(__TVOS__) || defined(__ANDROID__)
+#if defined(__IOS__) || defined(__TVOS__) || defined(SDL_PLATFORM_ANDROID)
 #define DONT_DRAW_WHILE_HIDDEN 1
 #else
 #define DONT_DRAW_WHILE_HIDDEN 0
@@ -808,7 +808,7 @@ SDL_Renderer *SDL_CreateRenderer(SDL_Window *window, const char *name, Uint32 fl
     const char *hint;
     int i;
 
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
     Android_ActivityMutex_Lock_Running();
 #endif
 
@@ -928,14 +928,14 @@ SDL_Renderer *SDL_CreateRenderer(SDL_Window *window, const char *name, Uint32 fl
     SDL_LogInfo(SDL_LOG_CATEGORY_RENDER,
                 "Created renderer: %s", renderer->info.name);
 
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
     Android_ActivityMutex_Unlock();
 #endif
     return renderer;
 
 error:
 
-#if defined(__ANDROID__)
+#if defined(SDL_PLATFORM_ANDROID)
     Android_ActivityMutex_Unlock();
 #endif
     return NULL;

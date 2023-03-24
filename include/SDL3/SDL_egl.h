@@ -25,7 +25,9 @@
  *  \brief This is a simple file to encapsulate the EGL API headers.
  */
 
-#if !defined(_MSC_VER) && !defined(__ANDROID__) && !defined(SDL_USE_BUILTIN_OPENGL_DEFINITIONS)
+#include "SDL_platform_defines.h"
+
+#if !defined(_MSC_VER) && !defined(SDL_PLATFORM_ANDROID) && !defined(SDL_USE_BUILTIN_OPENGL_DEFINITIONS)
 
 #if defined(__vita__) || defined(__psp2__)
 #include <psp2/display.h>

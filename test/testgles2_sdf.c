@@ -19,7 +19,7 @@
 #include <SDL3/SDL_main.h>
 #include "testutils.h"
 
-#if defined(__IOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__WINDOWS__) || defined(SDL_PLATFORM_LINUX)
+#if defined(__IOS__) || defined(SDL_PLATFORM_ANDROID) || defined(__EMSCRIPTEN__) || defined(__WINDOWS__) || defined(SDL_PLATFORM_LINUX)
 #define HAVE_OPENGLES2
 #endif
 
@@ -780,7 +780,7 @@ int main(int argc, char *argv[])
         SDL_Log("%2.2f frames per second\n",
                 ((double)frames * 1000) / (now - then));
     }
-#if !defined(__ANDROID__)
+#if !defined(SDL_PLATFORM_ANDROID)
     quit(0);
 #endif
     return 0;

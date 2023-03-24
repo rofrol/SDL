@@ -76,7 +76,7 @@ test_multi_audio(int devcount)
     int keep_going = 1;
     int i;
 
-#ifdef __ANDROID__
+#ifdef SDL_PLATFORM_ANDROID
     SDL_Event event;
 
     /* Create a Window to get fully initialized event processing for testing pause on Android. */
@@ -106,7 +106,7 @@ test_multi_audio(int devcount)
             emscripten_set_main_loop(loop, 0, 1);
 #else
             while (!SDL_AtomicGet(&cbd[0].done)) {
-#ifdef __ANDROID__
+#ifdef SDL_PLATFORM_ANDROID
                 /* Empty queue, some application events would prevent pause. */
                 while (SDL_PollEvent(&event)) {
                 }
@@ -145,7 +145,7 @@ test_multi_audio(int devcount)
                 keep_going = 1;
             }
         }
-#ifdef __ANDROID__
+#ifdef SDL_PLATFORM_ANDROID
         /* Empty queue, some application events would prevent pause. */
         while (SDL_PollEvent(&event)) {
         }
