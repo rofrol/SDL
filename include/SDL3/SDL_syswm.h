@@ -66,7 +66,7 @@
 #endif /* !SDL_DISABLE_SYSWM_HAIKU */
 
 #ifndef SDL_DISABLE_SYSWM_KMSDRM
-#if defined(__LINUX__) || defined(__FREEBSD__) || defined(__OPENBSD__)
+#if defined(__LINUX__) || defined(SDL_PLATFORM_FREEBSD) || defined(__OPENBSD__)
 #define SDL_ENABLE_SYSWM_KMSDRM
 #endif
 #endif /* !SDL_DISABLE_SYSWM_KMSDRM */
@@ -88,7 +88,7 @@
 #endif /* !SDL_DISABLE_SYSWM_VIVANTE */
 
 #ifndef SDL_DISABLE_SYSWM_WAYLAND
-#if defined(__LINUX__) || defined(__FREEBSD__)
+#if defined(__LINUX__) || defined(SDL_PLATFORM_FREEBSD)
 #define SDL_ENABLE_SYSWM_WAYLAND
 #endif
 #endif /* !SDL_DISABLE_SYSWM_WAYLAND */

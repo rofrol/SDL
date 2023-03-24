@@ -150,7 +150,7 @@ extern "C" {
 #define LOG(...) do {} while (0)
 #endif
 
-#ifndef __FreeBSD__
+#ifndef SDL_PLATFORM_FREEBSD
 #define DETACH_KERNEL_DRIVER
 #endif
 
@@ -345,7 +345,7 @@ static int get_usage(uint8_t *report_descriptor, size_t size,
 }
 #endif /* INVASIVE_GET_USAGE */
 
-#if defined(__FreeBSD__) && __FreeBSD__ < 10
+#if defined(SDL_PLATFORM_FREEBSD) && __FreeBSD__ < 10
 /* The libusb version included in FreeBSD < 10 doesn't have this function. In
    mainline libusb, it's inlined in libusb.h. This function will bear a striking
    resemblance to that one, because there's about one way to code it.

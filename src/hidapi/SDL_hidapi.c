@@ -805,7 +805,7 @@ static struct
 #define make_path                    LIBUSB_make_path
 #define read_thread                  LIBUSB_read_thread
 
-#ifndef __FreeBSD__
+#ifndef SDL_PLATFORM_FREEBSD
 /* this is awkwardly inlined, so we need to re-implement it here
  * so we can override the libusb_control_transfer call */
 static int
@@ -817,7 +817,7 @@ SDL_libusb_get_string_descriptor(libusb_device_handle *dev,
                                    data, (uint16_t)length, 1000); /* Endpoint 0 IN */
 }
 #define libusb_get_string_descriptor SDL_libusb_get_string_descriptor
-#endif /* __FreeBSD__ */
+#endif /* SDL_PLATFORM_FREEBSD */
 
 #undef HIDAPI_H__
 #include "libusb/hid.c"

@@ -39,7 +39,7 @@
 #include <sys/types.h>
 #include <sys/sysctl.h> /* For AltiVec check */
 #include <machine/cpu.h>
-#elif defined(__FreeBSD__) && defined(__powerpc__)
+#elif defined(SDL_PLATFORM_FREEBSD) && defined(__powerpc__)
 #include <machine/cpu.h>
 #include <sys/auxv.h>
 #elif SDL_ALTIVEC_BLITTERS && HAVE_SETJMP
@@ -107,7 +107,7 @@
 #define CPU_CFG2_LSX  (1 << 6)
 #define CPU_CFG2_LASX (1 << 7)
 
-#if SDL_ALTIVEC_BLITTERS && HAVE_SETJMP && !__MACOS__ && !__OpenBSD__ && !__FreeBSD__
+#if SDL_ALTIVEC_BLITTERS && HAVE_SETJMP && !__MACOS__ && !__OpenBSD__ && !SDL_PLATFORM_FREEBSD
 /* This is the brute force way of detecting instruction sets...
    the idea is borrowed from the libmpeg2 library - thanks!
  */
@@ -330,7 +330,7 @@ static int CPU_haveAltiVec(void)
     if (0 == error) {
         altivec = (hasVectorUnit != 0);
     }
-#elif defined(__FreeBSD__) && defined(__powerpc__)
+#elif defined(SDL_PLATFORM_FREEBSD) && defined(__powerpc__)
     unsigned long cpufeatures = 0;
     elf_aux_info(AT_HWCAP, &cpufeatures, sizeof(cpufeatures));
     altivec = cpufeatures & PPC_FEATURE_HAS_ALTIVEC;
@@ -1035,7 +1035,7 @@ int SDL_GetSystemRAM(void)
 #endif
 #ifdef HAVE_SYSCTLBYNAME
         if (SDL_SystemRAM <= 0) {
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__DragonFly__)
+#if defined(SDL_PLATFORM_FREEBSD) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__DragonFly__)
 #ifdef HW_REALMEM
             int mib[2] = { CTL_HW, HW_REALMEM };
 #else
@@ -1044,7 +1044,7 @@ int SDL_GetSystemRAM(void)
 #endif /* HW_REALMEM */
 #else
             int mib[2] = { CTL_HW, HW_MEMSIZE };
-#endif /* __FreeBSD__ || __FreeBSD_kernel__ */
+#endif /* SDL_PLATFORM_FREEBSD || __FreeBSD_kernel__ */
             Uint64 memsize = 0;
             size_t len = sizeof(memsize);
 
