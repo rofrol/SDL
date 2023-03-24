@@ -25,33 +25,23 @@
 
 */
 #include <SDL3/SDL_test.h>
-
-/* Enable to have color in logs */
-#if 1
-#define COLOR_RED       "\033[0;31m"
-#define COLOR_GREEN     "\033[0;32m"
-#define COLOR_YELLOW    "\033[0;93m"
-#define COLOR_BLUE      "\033[0;94m"
-#define COLOR_END       "\033[0m"
-#else
-#define COLOR_RED       ""
-#define COLOR_GREEN     ""
-#define COLOR_BLUE      ""
-#define COLOR_YELLOW    ""
-#define COLOR_END       ""
-#endif
+#include "SDL_test_internal.h"
 
 /* Assert check message format */
 #define SDLTEST_ASSERT_CHECK_FORMAT "Assert '%s': %s"
 
 /* Assert summary message format */
-#define SDLTEST_ASSERT_SUMMARY_FORMAT "Assert Summary: Total=%d " COLOR_GREEN "Passed=%d" COLOR_END " " COLOR_RED "Failed=%d" COLOR_END
+#define SDLTEST_ASSERT_SUMMARY_FORMAT_C(X) "Assert Summary: Total=%d " COLOR_GREEN(X) "Passed=%d" COLOR_END(X) " " COLOR_RED(X) "Failed=%d" COLOR_END(X)
+COLORIZE_MESSAGE(SDLTEST_ASSERT_SUMMARY_FORMAT, SDLTEST_ASSERT_SUMMARY_FORMAT_C);
 
 /* ! \brief counts the failed asserts */
 static int SDLTest_AssertsFailed = 0;
 
 /* ! \brief counts the passed asserts */
 static int SDLTest_AssertsPassed = 0;
+
+SDL_bool SDLTest_colorized = SDL_TRUE;
+
 
 /*
  *  Assert that logs and break execution flow on failures (i.e. for harness errors).
@@ -88,10 +78,10 @@ int SDLTest_AssertCheck(int assertCondition, SDL_PRINTF_FORMAT_STRING const char
     /* Log pass or fail message */
     if (assertCondition == ASSERT_FAIL) {
         SDLTest_AssertsFailed++;
-        SDLTest_LogError(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, COLOR_RED "Failed" COLOR_END);
+        SDLTest_LogError(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, FAILED_RED[SDLTest_colorized]);
     } else {
         SDLTest_AssertsPassed++;
-        SDLTest_Log(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, COLOR_GREEN "Passed" COLOR_END);
+        SDLTest_Log(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, PASSED_RED[SDLTest_colorized]);
     }
 
     return assertCondition;
@@ -113,7 +103,7 @@ void SDLTest_AssertPass(SDL_PRINTF_FORMAT_STRING const char *assertDescription, 
 
     /* Log pass message */
     SDLTest_AssertsPassed++;
-    SDLTest_Log(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, COLOR_GREEN "Passed" COLOR_END);
+    SDLTest_Log(SDLTEST_ASSERT_CHECK_FORMAT, logMessage, PASSED_GREEN[SDLTest_colorized]);
 }
 
 /*
@@ -133,9 +123,9 @@ void SDLTest_LogAssertSummary(void)
 {
     int totalAsserts = SDLTest_AssertsPassed + SDLTest_AssertsFailed;
     if (SDLTest_AssertsFailed == 0) {
-        SDLTest_Log(SDLTEST_ASSERT_SUMMARY_FORMAT, totalAsserts, SDLTest_AssertsPassed, SDLTest_AssertsFailed);
+        SDLTest_Log(SDLTEST_ASSERT_SUMMARY_FORMAT[SDLTest_colorized], totalAsserts, SDLTest_AssertsPassed, SDLTest_AssertsFailed);
     } else {
-        SDLTest_LogError(SDLTEST_ASSERT_SUMMARY_FORMAT, totalAsserts, SDLTest_AssertsPassed, SDLTest_AssertsFailed);
+        SDLTest_LogError(SDLTEST_ASSERT_SUMMARY_FORMAT[SDLTest_colorized], totalAsserts, SDLTest_AssertsPassed, SDLTest_AssertsFailed);
     }
 }
 

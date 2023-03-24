@@ -26,6 +26,7 @@ static const char *common_usage[] = {
     "[-h | --help]",
     "[--trackmem]",
     "[--log all|error|system|audio|video|render|input]",
+    "[--colorized|--no-colorized]",
 };
 
 static const char *video_usage[] = {
@@ -148,6 +149,14 @@ int SDLTest_CommonArg(SDLTest_CommonState *state, int index)
     }
     if (SDL_strcasecmp(argv[index], "--trackmem") == 0) {
         /* Already handled in SDLTest_CommonCreateState() */
+        return 1;
+    }
+    if (SDL_strcasecmp(argv[index], "--colorized") == 0) {
+        SDLTest_colorized = SDL_TRUE;
+        return 1;
+    }
+    if (SDL_strcasecmp(argv[index], "--no-colorized") == 0) {
+        SDLTest_colorized = SDL_FALSE;
         return 1;
     }
     if (SDL_strcasecmp(argv[index], "--log") == 0) {

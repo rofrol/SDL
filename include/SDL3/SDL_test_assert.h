@@ -53,6 +53,11 @@ extern "C" {
 #define ASSERT_PASS     1
 
 /**
+ * \brief Controls printing of colorized messages by SDLTest.
+ */
+extern SDL_bool SDLTest_colorized;
+
+/**
  * \brief Assert that logs and break execution flow on failures.
  *
  * \param assertCondition Evaluated condition or variable to assert; fail (==0) or pass (!=0).
