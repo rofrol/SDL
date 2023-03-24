@@ -53,8 +53,7 @@
 #define SDL_PLATFORM_LINUX 1
 #endif
 #if defined(__NGAGE__)
-#undef __NGAGE__
-#define __NGAGE__ 1
+#define SDL_PLATFORM_NGAGE 1
 #endif
 
 #if defined(__APPLE__)

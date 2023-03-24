@@ -110,7 +110,7 @@
 */
 #define SDL_MAIN_AVAILABLE
 
-#elif defined(__NGAGE__)
+#elif defined(SDL_PLATFORM_NGAGE)
 
 /*
    TODO: not sure if it should be SDL_MAIN_NEEDED, in SDL2 ngage had a
@@ -283,7 +283,7 @@ extern DECLSPEC void SDLCALL SDL_GDKSuspendComplete(void);
 #if !defined(SDL_MAIN_HANDLED) && !defined(SDL_MAIN_NOIMPL)
 /* include header-only SDL_main implementations */
 #if defined(__WIN32__) || defined(__GDK__) || defined(__IOS__) || defined(__TVOS__) \
-    || defined(__3DS__) || defined(__NGAGE__) || defined(__PS2__) || defined(__PSP__)
+    || defined(__3DS__) || defined(SDL_PLATFORM_NGAGE) || defined(__PS2__) || defined(__PSP__)
 
 /* platforms whichs main (-equivalent) can be implemented in plain C */
 #include <SDL3/SDL_main_impl.h>
