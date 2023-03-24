@@ -149,7 +149,7 @@ extern DECLSPEC SDL_bool SDLCALL SDL_DXGIGetOutputInfo(SDL_DisplayID displayID, 
 #endif /* defined(__WIN32__) || defined(__WINGDK__) */
 
 /* Platform specific functions for Linux */
-#ifdef __LINUX__
+#ifdef SDL_PLATFORM_LINUX
 
 /**
  * Sets the UNIX nice value for a thread.
@@ -180,7 +180,7 @@ extern DECLSPEC int SDLCALL SDL_LinuxSetThreadPriority(Sint64 threadID, int prio
  */
 extern DECLSPEC int SDLCALL SDL_LinuxSetThreadPriorityAndPolicy(Sint64 threadID, int sdlPriority, int schedPolicy);
 
-#endif /* __LINUX__ */
+#endif /* SDL_PLATFORM_LINUX */
 
 /* Platform specific functions for iOS */
 #ifdef __IOS__

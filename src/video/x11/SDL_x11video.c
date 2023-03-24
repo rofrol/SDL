@@ -49,7 +49,7 @@ static void X11_VideoQuit(_THIS);
 static char *get_classname(void)
 {
     char *spot;
-#if defined(__LINUX__) || defined(SDL_PLATFORM_FREEBSD)
+#if defined(SDL_PLATFORM_LINUX) || defined(SDL_PLATFORM_FREEBSD)
     char procfile[1024];
     char linkfile[1024];
     int linksize;
@@ -62,8 +62,8 @@ static char *get_classname(void)
     }
 
     /* Next look at the application's executable name */
-#if defined(__LINUX__) || defined(SDL_PLATFORM_FREEBSD)
-#if defined(__LINUX__)
+#if defined(SDL_PLATFORM_LINUX) || defined(SDL_PLATFORM_FREEBSD)
+#if defined(SDL_PLATFORM_LINUX)
     (void)SDL_snprintf(procfile, SDL_arraysize(procfile), "/proc/%d/exe", getpid());
 #elif defined(SDL_PLATFORM_FREEBSD)
     (void)SDL_snprintf(procfile, SDL_arraysize(procfile), "/proc/%d/file", getpid());
@@ -80,7 +80,7 @@ static char *get_classname(void)
             return SDL_strdup(linkfile);
         }
     }
-#endif /* __LINUX__ || SDL_PLATFORM_FREEBSD */
+#endif /* SDL_PLATFORM_LINUX || SDL_PLATFORM_FREEBSD */
 
     /* Finally use the default we've used forever */
     return SDL_strdup("SDL_App");

@@ -46,9 +46,8 @@
 #if defined(sgi) || defined(__sgi) || defined(__sgi__) || defined(_SGI_SOURCE)
 #define SDL_PLATFORM_IRIX 1
 #endif
-#if (defined(linux) || defined(__linux) || defined(__linux__))
-#undef __LINUX__
-#define __LINUX__   1
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#define SDL_PLATFORM_LINUX 1
 #endif
 #if defined(ANDROID) || defined(__ANDROID__)
 #undef __ANDROID__

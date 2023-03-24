@@ -89,7 +89,7 @@ SDL_DYNAPI_PROC(const wchar_t*,SDL_WinRTGetFSPathUNICODE,(SDL_WinRT_Path a),(a),
 SDL_DYNAPI_PROC(const char*,SDL_WinRTGetFSPathUTF8,(SDL_WinRT_Path a),(a),return)
 #endif
 
-#ifdef __LINUX__
+#ifdef SDL_PLATFORM_LINUX
 SDL_DYNAPI_PROC(int,SDL_LinuxSetThreadPriority,(Sint64 a, int b),(a,b),return)
 SDL_DYNAPI_PROC(int,SDL_LinuxSetThreadPriorityAndPolicy,(Sint64 a, int b, int c),(a,b,c),return)
 #endif
