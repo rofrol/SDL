@@ -60,7 +60,7 @@
 #endif /* !SDL_DISABLE_SYSWM_COCOA */
 
 #ifndef SDL_DISABLE_SYSWM_HAIKU
-#ifdef __HAIKU__
+#ifdef SDL_PLATFORM_HAIKU
 #define SDL_ENABLE_SYSWM_HAIKU
 #endif
 #endif /* !SDL_DISABLE_SYSWM_HAIKU */

@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#if defined(__HAIKU__)
+#if defined(SDL_PLATFORM_HAIKU)
 
 /* Handle the BeApp specific portions of the application */
 
@@ -152,4 +152,4 @@ void SDL_BApp::ClearID(SDL_BWin *bwin) {
     }
 }
 
-#endif /* __HAIKU__ */
+#endif /* SDL_PLATFORM_HAIKU */

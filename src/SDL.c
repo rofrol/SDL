@@ -94,7 +94,7 @@ SDL_NORETURN void SDL_ExitProcess(int exitcode)
     emscripten_cancel_main_loop();   /* this should "kill" the app. */
     emscripten_force_exit(exitcode); /* this should "kill" the app. */
     exit(exitcode);
-#elif defined(__HAIKU__)  /* Haiku has _Exit, but it's not marked noreturn. */
+#elif defined(SDL_PLATFORM_HAIKU)  /* Haiku has _Exit, but it's not marked noreturn. */
     _exit(exitcode);
 #elif defined(HAVE__EXIT) /* Upper case _Exit() */
     _Exit(exitcode);
@@ -560,7 +560,7 @@ SDL_GetPlatform(void)
     return "Emscripten";
 #elif defined(__FREEBSD__)
     return "FreeBSD";
-#elif defined(__HAIKU__)
+#elif defined(SDL_PLATFORM_HAIKU)
     return "Haiku";
 #elif defined(__HPUX__)
     return "HP-UX";
