@@ -552,7 +552,7 @@ SDL_GetPlatform(void)
     return "AIX";
 #elif defined(__ANDROID__)
     return "Android";
-#elif defined(__BSDI__)
+#elif defined(SDL_PLATFORM_BSDI)
     return "BSDI";
 #elif defined(__DREAMCAST__)
     return "Dreamcast";
