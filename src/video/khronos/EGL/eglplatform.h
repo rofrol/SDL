@@ -119,7 +119,7 @@ typedef void             *EGLNativeDisplayType;
 typedef khronos_uintptr_t EGLNativePixmapType;
 typedef khronos_uintptr_t EGLNativeWindowType;
 
-#elif defined(__APPLE__)
+#elif defined(SDL_PLATFORM_APPLE)
 
 typedef int   EGLNativeDisplayType;
 typedef void *EGLNativePixmapType;

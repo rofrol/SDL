@@ -639,7 +639,7 @@ SDL_memset(SDL_OUT_BYTECAP(len) void *dst, int c, size_t len)
 void *
 SDL_memset4(void *dst, Uint32 val, size_t dwords)
 {
-#if defined(__APPLE__) && defined(HAVE_STRING_H)
+#if defined(SDL_PLATFORM_APPLE) && defined(HAVE_STRING_H)
     memset_pattern4(dst, &val, dwords * 4);
 #elif defined(__GNUC__) && defined(__i386__)
     int u0, u1, u2;

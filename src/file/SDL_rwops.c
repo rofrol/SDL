@@ -35,9 +35,9 @@
    data sources.  It can easily be extended to files, memory, etc.
 */
 
-#ifdef __APPLE__
+#ifdef SDL_PLATFORM_APPLE
 #include "cocoa/SDL_rwopsbundlesupport.h"
-#endif /* __APPLE__ */
+#endif /* SDL_PLATFORM_APPLE */
 
 #ifdef __3DS__
 #include "n3ds/SDL_rwopsromfs.h"
@@ -570,7 +570,7 @@ SDL_RWFromFile(const char *file, const char *mode)
     rwops->type = SDL_RWOPS_WINFILE;
 #elif HAVE_STDIO_H
     {
-#if __APPLE__ && !SDL_FILE_DISABLED // TODO: add dummy?
+#if SDL_PLATFORM_APPLE && !SDL_FILE_DISABLED // TODO: add dummy?
         FILE *fp = SDL_OpenFPFromBundleOrFallback(file, mode);
 #elif __WINRT__
         FILE *fp = NULL;
