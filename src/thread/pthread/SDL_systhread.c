@@ -133,7 +133,7 @@ void SDL_SYS_SetupThread(const char *name)
 #endif
         }
 #elif HAVE_PTHREAD_SETNAME_NP
-#if defined(__NETBSD__)
+#if defined(SDL_PLATFORM_NETBSD)
         pthread_setname_np(pthread_self(), "%s", name);
 #else
         if (pthread_setname_np(pthread_self(), name) == ERANGE) {

@@ -95,9 +95,8 @@
 #endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
 
-#if defined(__NetBSD__)
-#undef __NETBSD__
-#define __NETBSD__  1
+#if defined(__NetBSD__) || defined(__NetBSD)
+#define SDL_PLATFORM_NETBSD 1
 #endif
 #if defined(__OpenBSD__)
 #undef __OPENBSD__

@@ -1035,7 +1035,7 @@ int SDL_GetSystemRAM(void)
 #endif
 #ifdef HAVE_SYSCTLBYNAME
         if (SDL_SystemRAM <= 0) {
-#if defined(SDL_PLATFORM_FREEBSD) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__DragonFly__)
+#if defined(SDL_PLATFORM_FREEBSD) || defined(__FreeBSD_kernel__) || defined(SDL_PLATFORM_NETBSD) || defined(__DragonFly__)
 #ifdef HW_REALMEM
             int mib[2] = { CTL_HW, HW_REALMEM };
 #else
