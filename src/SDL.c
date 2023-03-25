@@ -576,7 +576,7 @@ SDL_GetPlatform(void)
     return "NetBSD";
 #elif defined(SDL_PLATFORM_OPENBSD)
     return "OpenBSD";
-#elif defined(__OS2__)
+#elif defined(SDL_PLATFORM_OS2)
     return "OS/2";
 #elif defined(__OSF__)
     return "OSF/1";
