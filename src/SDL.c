@@ -578,7 +578,7 @@ SDL_GetPlatform(void)
     return "OpenBSD";
 #elif defined(SDL_PLATFORM_OS2)
     return "OS/2";
-#elif defined(__OSF__)
+#elif defined(SDL_PLATFORM_OSF)
     return "OSF/1";
 #elif defined(__QNXNTO__)
     return "QNX Neutrino";
