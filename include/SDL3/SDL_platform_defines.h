@@ -56,6 +56,10 @@
 #define SDL_PLATFORM_NGAGE 1
 #endif
 
+#if defined(__unix__)
+#define SDL_PLATFORM_UNIX 1
+#endif
+
 #if defined(__APPLE__)
 #define SDL_PLATFORM_APPLE 1
 /* lets us know what version of macOS we're compiling on */

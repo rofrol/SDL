@@ -106,7 +106,7 @@
 #endif /* !SDL_DISABLE_SYSWM_WINRT */
 
 #ifndef SDL_DISABLE_SYSWM_X11
-#if defined(__unix__) && !defined(__WIN32__) && !defined(SDL_PLATFORM_ANDROID)
+#if defined(SDL_PLATFORM_UNIX) && !defined(__WIN32__) && !defined(SDL_PLATFORM_ANDROID)
 #define SDL_ENABLE_SYSWM_X11
 #endif
 #endif /* !SDL_DISABLE_SYSWM_X11 */

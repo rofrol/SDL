@@ -113,7 +113,7 @@ typedef Display *EGLNativeDisplayType;
 typedef Pixmap   EGLNativePixmapType;
 typedef Window   EGLNativeWindowType;
 
-#elif defined(__unix__)
+#elif defined(SDL_PLATFORM_UNIX)
 
 typedef void             *EGLNativeDisplayType;
 typedef khronos_uintptr_t EGLNativePixmapType;
