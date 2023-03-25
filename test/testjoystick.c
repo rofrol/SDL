@@ -22,7 +22,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-#ifdef __IOS__
+#ifdef SDL_PLATFORM_IOS
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 480
 #else

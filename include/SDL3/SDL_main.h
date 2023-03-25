@@ -63,7 +63,7 @@
 */
 #define SDL_MAIN_NEEDED
 
-#elif defined(__IOS__)
+#elif defined(SDL_PLATFORM_IOS)
 /* On iOS SDL provides a main function that creates an application delegate
    and starts the iOS application run loop.
 
@@ -253,12 +253,12 @@ extern DECLSPEC void SDLCALL SDL_UnregisterApp(void);
 
 #endif /* __WINRT__ */
 
-#if defined(__IOS__)
+#if defined(SDL_PLATFORM_IOS)
 
 /* for compatibility with SDL2's function of this name */
 #define SDL_UIKitRunApp(ARGC, ARGV, MAIN_FUNC)  SDL_RunApp(ARGC, ARGV, MAIN_FUNC, NULL)
 
-#endif /* __IOS__ */
+#endif /* SDL_PLATFORM_IOS */
 
 #ifdef __GDK__
 
@@ -282,7 +282,7 @@ extern DECLSPEC void SDLCALL SDL_GDKSuspendComplete(void);
 
 #if !defined(SDL_MAIN_HANDLED) && !defined(SDL_MAIN_NOIMPL)
 /* include header-only SDL_main implementations */
-#if defined(__WIN32__) || defined(__GDK__) || defined(__IOS__) || defined(SDL_PLATFORM_TVOS) \
+#if defined(__WIN32__) || defined(__GDK__) || defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS) \
     || defined(__3DS__) || defined(SDL_PLATFORM_NGAGE) || defined(__PS2__) || defined(__PSP__)
 
 /* platforms whichs main (-equivalent) can be implemented in plain C */

@@ -78,7 +78,7 @@
 #endif /* !SDL_DISABLE_SYSWM_RISCOS */
 
 #ifndef SDL_DISABLE_SYSWM_UIKIT
-#if defined(__IOS__) || defined(SDL_PLATFORM_TVOS)
+#if defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
 #define SDL_ENABLE_SYSWM_UIKIT
 #endif
 #endif /* !SDL_DISABLE_SYSWM_UIKIT */

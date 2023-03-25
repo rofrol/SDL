@@ -189,12 +189,12 @@ typedef struct
 
 static Uint32 SDL_DefaultGraphicsBackends(SDL_VideoDevice *_this)
 {
-#if (SDL_VIDEO_OPENGL && __MACOS__) || (__IOS__ && !TARGET_OS_MACCATALYST) || SDL_PLATFORM_ANDROID
+#if (SDL_VIDEO_OPENGL && __MACOS__) || (SDL_PLATFORM_IOS && !TARGET_OS_MACCATALYST) || SDL_PLATFORM_ANDROID
     if (_this->GL_CreateContext != NULL) {
         return SDL_WINDOW_OPENGL;
     }
 #endif
-#if SDL_VIDEO_METAL && (TARGET_OS_MACCATALYST || __MACOS__ || __IOS__)
+#if SDL_VIDEO_METAL && (TARGET_OS_MACCATALYST || __MACOS__ || SDL_PLATFORM_IOS)
     if (_this->Metal_CreateView != NULL) {
         return SDL_WINDOW_METAL;
     }

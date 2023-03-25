@@ -25,7 +25,7 @@
 
 #include "../SDL_sysaudio.h"
 
-#if !defined(__IOS__)
+#if !defined(SDL_PLATFORM_IOS)
 #define MACOSX_COREAUDIO 1
 #endif
 

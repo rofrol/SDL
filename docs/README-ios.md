@@ -261,7 +261,7 @@ e.g.
     {
         ... initialize game ...
 
-    #ifdef __IOS__
+    #ifdef SDL_PLATFORM_IOS
         // Initialize the Game Center for scoring and matchmaking
         InitGameCenter();
 
