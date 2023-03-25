@@ -101,7 +101,7 @@
    void reset_IOP(); \
    void reset_IOP() {}
 
-#elif defined(__3DS__)
+#elif defined(SDL_PLATFORM_3DS)
 /*
   On N3DS, SDL provides a main function that sets up the screens
   and storage.
@@ -283,7 +283,7 @@ extern DECLSPEC void SDLCALL SDL_GDKSuspendComplete(void);
 #if !defined(SDL_MAIN_HANDLED) && !defined(SDL_MAIN_NOIMPL)
 /* include header-only SDL_main implementations */
 #if defined(__WIN32__) || defined(__GDK__) || defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS) \
-    || defined(__3DS__) || defined(SDL_PLATFORM_NGAGE) || defined(SDL_PLATFORM_PS2) || defined(SDL_PLATFORM_PSP)
+    || defined(SDL_PLATFORM_3DS) || defined(SDL_PLATFORM_NGAGE) || defined(SDL_PLATFORM_PS2) || defined(SDL_PLATFORM_PSP)
 
 /* platforms whichs main (-equivalent) can be implemented in plain C */
 #include <SDL3/SDL_main_impl.h>

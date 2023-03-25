@@ -453,7 +453,7 @@ static int CPU_haveNEON(void)
     return 1; /* ARMv8 always has non-optional NEON support. */
 #elif SDL_PLATFORM_VITA
     return 1;
-#elif __3DS__
+#elif SDL_PLATFORM_3DS
     return 0;
 #elif defined(SDL_PLATFORM_APPLE) && defined(__ARM_ARCH) && (__ARM_ARCH >= 7)
     /* (note that sysctlbyname("hw.optional.neon") doesn't work!) */
