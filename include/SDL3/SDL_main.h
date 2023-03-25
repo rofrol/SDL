@@ -282,7 +282,7 @@ extern DECLSPEC void SDLCALL SDL_GDKSuspendComplete(void);
 
 #if !defined(SDL_MAIN_HANDLED) && !defined(SDL_MAIN_NOIMPL)
 /* include header-only SDL_main implementations */
-#if defined(__WIN32__) || defined(__GDK__) || defined(__IOS__) || defined(__TVOS__) \
+#if defined(__WIN32__) || defined(__GDK__) || defined(__IOS__) || defined(SDL_PLATFORM_TVOS) \
     || defined(__3DS__) || defined(SDL_PLATFORM_NGAGE) || defined(__PS2__) || defined(__PSP__)
 
 /* platforms whichs main (-equivalent) can be implemented in plain C */
