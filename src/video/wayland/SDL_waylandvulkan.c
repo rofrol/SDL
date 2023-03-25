@@ -35,7 +35,7 @@
 
 #include <SDL3/SDL_syswm.h>
 
-#if defined(__OpenBSD__)
+#if defined(SDL_PLATFORM_OPENBSD)
 #define DEFAULT_VULKAN "libvulkan.so"
 #else
 #define DEFAULT_VULKAN "libvulkan.so.1"

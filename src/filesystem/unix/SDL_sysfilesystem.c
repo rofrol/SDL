@@ -34,7 +34,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#if defined(SDL_PLATFORM_FREEBSD) || defined(__OPENBSD__)
+#if defined(SDL_PLATFORM_FREEBSD) || defined(SDL_PLATFORM_OPENBSD)
 #include <sys/sysctl.h>
 #endif
 
@@ -68,7 +68,7 @@ static char *readSymLink(const char *path)
     return NULL;
 }
 
-#if defined(__OPENBSD__)
+#if defined(SDL_PLATFORM_OPENBSD)
 static char *search_path_for_binary(const char *bin)
 {
     char *envr = SDL_getenv("PATH");
@@ -136,7 +136,7 @@ SDL_GetBasePath(void)
         }
     }
 #endif
-#if defined(__OPENBSD__)
+#if defined(SDL_PLATFORM_OPENBSD)
     /* Please note that this will fail if the process was launched with a relative path and $PWD + the cwd have changed, or argv is altered. So don't do that. Or add a new sysctl to OpenBSD. */
     char **cmdline;
     size_t len;

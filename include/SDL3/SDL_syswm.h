@@ -66,7 +66,7 @@
 #endif /* !SDL_DISABLE_SYSWM_HAIKU */
 
 #ifndef SDL_DISABLE_SYSWM_KMSDRM
-#if defined(SDL_PLATFORM_LINUX) || defined(SDL_PLATFORM_FREEBSD) || defined(__OPENBSD__)
+#if defined(SDL_PLATFORM_LINUX) || defined(SDL_PLATFORM_FREEBSD) || defined(SDL_PLATFORM_OPENBSD)
 #define SDL_ENABLE_SYSWM_KMSDRM
 #endif
 #endif /* !SDL_DISABLE_SYSWM_KMSDRM */

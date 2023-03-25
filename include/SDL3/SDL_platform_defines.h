@@ -98,9 +98,8 @@
 #if defined(__NetBSD__) || defined(__NetBSD)
 #define SDL_PLATFORM_NETBSD 1
 #endif
-#if defined(__OpenBSD__)
-#undef __OPENBSD__
-#define __OPENBSD__ 1
+#if defined(__OpenBSD__) || defined(__OPENBSD)
+#define SDL_PLATFORM_OPENBSD 1
 #endif
 #if defined(__OS2__) || defined(__EMX__)
 #undef __OS2__
