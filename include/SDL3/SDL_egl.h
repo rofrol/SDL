@@ -29,7 +29,7 @@
 
 #if !defined(_MSC_VER) && !defined(SDL_PLATFORM_ANDROID) && !defined(SDL_USE_BUILTIN_OPENGL_DEFINITIONS)
 
-#if defined(__vita__) || defined(__psp2__)
+#if defined(SDL_PLATFORM_VITA) || defined(__psp2__)
 #include <psp2/display.h>
 #include <psp2/gxm.h>
 #include <psp2/types.h>

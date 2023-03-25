@@ -2642,8 +2642,6 @@ elseif(VITA)
     )
   endif()
 
-  target_compile_definitions(sdl-build-options INTERFACE "__VITA__")
-
 elseif(PSP)
   file(GLOB PSP_CORE_SOURCES ${SDL3_SOURCE_DIR}/src/core/psp/*.c)
   list(APPEND SOURCE_FILES ${PSP_CORE_SOURCES})

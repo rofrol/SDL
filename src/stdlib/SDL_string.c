@@ -24,7 +24,7 @@
 
 #include "SDL_vacopy.h"
 
-#if defined(__vita__)
+#if defined(SDL_PLATFORM_VITA)
 #include <psp2/kernel/clib.h>
 #endif
 
@@ -313,7 +313,7 @@ SDL_memmove(SDL_OUT_BYTECAP(len) void *dst, SDL_IN_BYTECAP(len) const void *src,
 
 int SDL_memcmp(const void *s1, const void *s2, size_t len)
 {
-#if defined(__vita__)
+#if defined(SDL_PLATFORM_VITA)
     /*
       Using memcmp on NULL is UB per POSIX / C99 7.21.1/2.
       But, both linux and bsd allow that, with an exception:

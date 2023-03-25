@@ -177,7 +177,7 @@
 #endif
 
 #if defined(__vita__)
-#define __VITA__ 1
+#define SDL_PLATFORM_VITA 1
 #endif
 
 #if defined(__3DS__)
