@@ -173,7 +173,7 @@
 #endif
 
 #if defined(PS2)
-#define __PS2__ 1
+#define SDL_PLATFORM_PS2 1
 #endif
 
 #if defined(__vita__)

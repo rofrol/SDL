@@ -2707,7 +2707,6 @@ elseif(PSP)
   )
 
 elseif(PS2)
-  target_compile_definitions(sdl-build-options INTERFACE "PS2" "__PS2__")
   target_include_directories(sdl-build-options INTERFACE "$ENV{PS2SDK}/ports/include" "$ENV{PS2DEV}/gsKit/include")
 
   file(GLOB PS2_CORE_SOURCES ${SDL3_SOURCE_DIR}/src/core/ps2/*.c)
