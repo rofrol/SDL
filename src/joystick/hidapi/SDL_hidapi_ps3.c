@@ -69,7 +69,7 @@ static SDL_bool HIDAPI_DriverPS3_IsEnabled(void)
 {
     SDL_bool default_value;
 
-#if defined(__MACOS__)
+#if defined(SDL_PLATFORM_MACOS)
     /* This works well on macOS */
     default_value = SDL_TRUE;
 #elif defined(__WINDOWS__)

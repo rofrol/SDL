@@ -151,7 +151,7 @@ static VideoBootStrap *bootstrap[] = {
         return retval;                                                  \
     }
 
-#if defined(__MACOS__) && defined(SDL_VIDEO_DRIVER_COCOA)
+#if defined(SDL_PLATFORM_MACOS) && defined(SDL_VIDEO_DRIVER_COCOA)
 /* Support for macOS fullscreen spaces */
 extern SDL_bool Cocoa_IsWindowInFullscreenSpace(SDL_Window *window);
 extern SDL_bool Cocoa_SetWindowFullscreenSpace(SDL_Window *window, SDL_bool state);
@@ -189,12 +189,12 @@ typedef struct
 
 static Uint32 SDL_DefaultGraphicsBackends(SDL_VideoDevice *_this)
 {
-#if (SDL_VIDEO_OPENGL && __MACOS__) || (SDL_PLATFORM_IOS && !TARGET_OS_MACCATALYST) || SDL_PLATFORM_ANDROID
+#if (SDL_VIDEO_OPENGL && SDL_PLATFORM_MACOS) || (SDL_PLATFORM_IOS && !TARGET_OS_MACCATALYST) || SDL_PLATFORM_ANDROID
     if (_this->GL_CreateContext != NULL) {
         return SDL_WINDOW_OPENGL;
     }
 #endif
-#if SDL_VIDEO_METAL && (TARGET_OS_MACCATALYST || __MACOS__ || SDL_PLATFORM_IOS)
+#if SDL_VIDEO_METAL && (TARGET_OS_MACCATALYST || SDL_PLATFORM_MACOS || SDL_PLATFORM_IOS)
     if (_this->Metal_CreateView != NULL) {
         return SDL_WINDOW_METAL;
     }
@@ -1423,7 +1423,7 @@ static int SDL_UpdateFullscreenMode(SDL_Window *window, SDL_bool fullscreen)
         }
     }
 
-#if defined(__MACOS__) && defined(SDL_VIDEO_DRIVER_COCOA)
+#if defined(SDL_PLATFORM_MACOS) && defined(SDL_VIDEO_DRIVER_COCOA)
     /* if the window is going away and no resolution change is necessary,
        do nothing, or else we may trigger an ugly double-transition
      */
@@ -3330,7 +3330,7 @@ static SDL_bool SDL_ShouldMinimizeOnFocusLoss(SDL_Window *window)
         return SDL_FALSE;
     }
 
-#if defined(__MACOS__) && defined(SDL_VIDEO_DRIVER_COCOA)
+#if defined(SDL_PLATFORM_MACOS) && defined(SDL_VIDEO_DRIVER_COCOA)
     if (SDL_strcmp(_this->name, "cocoa") == 0) { /* don't do this for X11, etc */
         if (Cocoa_IsWindowInFullscreenSpace(window)) {
             return SDL_FALSE;

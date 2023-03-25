@@ -54,7 +54,7 @@
 #endif /* !SDL_DISABLE_SYSWM_ANDROID */
 
 #ifndef SDL_DISABLE_SYSWM_COCOA
-#ifdef __MACOS__
+#ifdef SDL_PLATFORM_MACOS
 #define SDL_ENABLE_SYSWM_COCOA
 #endif
 #endif /* !SDL_DISABLE_SYSWM_COCOA */

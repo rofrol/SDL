@@ -46,7 +46,7 @@ enum blit_features
 };
 
 #if SDL_ALTIVEC_BLITTERS
-#ifdef __MACOS__
+#ifdef SDL_PLATFORM_MACOS
 #include <sys/sysctl.h>
 static size_t
 GetL3CacheSize(void)
@@ -69,9 +69,9 @@ GetL3CacheSize(void)
     /* XXX: Just guess G4 */
     return 2097152;
 }
-#endif /* __MACOS__ */
+#endif /* SDL_PLATFORM_MACOS */
 
-#if (defined(__MACOS__) && (__GNUC__ < 4))
+#if (defined(SDL_PLATFORM_MACOS) && (__GNUC__ < 4))
 #define VECUINT8_LITERAL(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) \
     (vector unsigned char)(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
 #define VECUINT16_LITERAL(a, b, c, d, e, f, g, h) \

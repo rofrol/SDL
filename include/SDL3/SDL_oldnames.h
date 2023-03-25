@@ -326,8 +326,8 @@
 #ifdef SDL_PLATFORM_IOS
 #define __IPHONEOS__ SDL_PLATFORM_IOS
 #endif
-#ifdef __MACOS__
-#define __MACOSX__ __MACOS__
+#ifdef SDL_PLATFORM_MACOS
+#define __MACOSX__ SDL_PLATFORM_MACOS
 #endif
 
 /* ##SDL_rect.h */
@@ -723,8 +723,8 @@
 #ifdef SDL_PLATFORM_IOS
 #define __IPHONEOS__ __IPHONEOS___renamed_SDL_PLATFORM_IOS
 #endif
-#ifdef __MACOS__
-#define __MACOSX__ __MACOSX___renamed___MACOS__
+#ifdef SDL_PLATFORM_MACOS
+#define __MACOSX__ __MACOSX___renamed_SDL_PLATFORM_MACOS
 #endif
 
 /* ##SDL_rect.h */
