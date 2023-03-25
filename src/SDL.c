@@ -602,7 +602,7 @@ SDL_GetPlatform(void)
     return "tvOS";
 #elif defined(__PS2__)
     return "PlayStation 2";
-#elif defined(__PSP__)
+#elif defined(SDL_PLATFORM_PSP)
     return "PlayStation Portable";
 #elif defined(__VITA__)
     return "PlayStation Vita";
