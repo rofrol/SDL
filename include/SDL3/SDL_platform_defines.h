@@ -107,9 +107,8 @@
 #if defined(osf) || defined(__osf) || defined(__osf__) || defined(_OSF_SOURCE)
 #define SDL_PLATFORM_OSF 1
 #endif
-#if defined(__QNXNTO__)
-#undef __QNXNTO__
-#define __QNXNTO__  1
+#if defined(__QNX__) || defined(__QNXNTO__)
+#define SDL_PLATFORM_QNXNTO 1
 #endif
 #if defined(riscos) || defined(__riscos) || defined(__riscos__)
 #undef __RISCOS__
