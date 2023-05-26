@@ -3039,6 +3039,11 @@ listtostr(INFO_SHARED_LDFLAGS INFO_SHARED_LDFLAGS)
 
 get_property(INFO_EXTRA_LIBS TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
 listtostr(INFO_EXTRA_LIBS INFO_EXTRA_LIBS)
+
+get_property(INFO_EXTRA_LIBDIRS TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_DIRECTORIES)
+list(REMOVE_DUPLICATES INFO_EXTRA_LIBDIRS)
+listtostr(INFO_EXTRA_LIBDIRS INFO_EXTRA_LIBDIRS "-L")
+
 listtostr(SDL_CMAKE_DEPENDS INFO_CMAKE_DEPENDS)
 
 ##### Info output #####
@@ -3075,7 +3080,7 @@ message(STATUS " EXTRA DEFS:    ${INFO_DEFS}")
 message(STATUS " EXTRA CFLAGS:  ${INFO_CFLAGS} ${INFO_CHECKS}")
 message(STATUS " EXTRA INCDIRS: ${INFO_INCDIRS}")
 message(STATUS " EXTRA LDFLAGS: ${INFO_SHARED_LDFLAGS}")
-message(STATUS " EXTRA LIBS:    ${INFO_EXTRA_LIBS} ${INFO_CMAKE_DEPENDS}")
+message(STATUS " EXTRA LIBS:    ${INFO_EXTRA_LIBDIRS} ${INFO_EXTRA_LIBS} ${INFO_CMAKE_DEPENDS}")
 message(STATUS "")
 message(STATUS " Build Shared Library: ${SDL_SHARED}")
 message(STATUS " Build Static Library: ${SDL_STATIC}")
@@ -3239,6 +3244,8 @@ if(SDL_SHARED)
   endif()
   get_property(sdl_shared_dep_libs TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
   target_link_libraries(SDL3-shared PRIVATE ${sdl_shared_dep_libs} ${SDL_CMAKE_DEPENDS})
+  get_property(sdl_shared_dep_libdirs TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_DIRECTORIES)
+  target_link_directories(SDL3-shared PRIVATE ${sdl_shared_dep_libdirs})
   target_include_directories(SDL3-shared
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
@@ -3290,6 +3297,8 @@ if(SDL_STATIC)
   target_compile_definitions(SDL3-static PRIVATE SDL_STATIC_LIB)
   get_property(sdl_static_dep_libs TARGET sdl-static-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
   target_link_libraries(SDL3-static PRIVATE ${sdl_static_dep_libs} ${SDL_CMAKE_DEPENDS})
+  get_property(sdl_static_dep_libdirs TARGET sdl-static-build-options PROPERTY INTERFACE_LINK_DIRECTORIES)
+  target_link_directories(SDL3-static INTERFACE ${sdl_static_dep_libdirs})
   target_include_directories(SDL3-static
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
