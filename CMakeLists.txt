@@ -13,7 +13,6 @@ else()
   set(SDL3_SUBPROJECT ON)
 endif()
 
-set(SDL_EXTRA_LIBS)
 set(SDL_EXTRA_LDFLAGS)
 
 set(SDL_CMAKE_DEPENDS)
@@ -1170,14 +1169,14 @@ if(SDL_LIBC)
     if(HAVE_LIBM)
       cmake_pop_check_state()
       if(NOT VITA)
-        list(APPEND SDL_EXTRA_LIBS m)
+        sdl_link_libraries(m)
       endif()
     endif()
 
     if(SDL_SYSTEM_ICONV)
       check_library_exists(iconv iconv_open "" HAVE_LIBICONV)
       if(HAVE_LIBICONV)
-        list(APPEND SDL_EXTRA_LIBS iconv)
+        sdl_link_libraries(iconv)
         set(HAVE_ICONV 1)
         set(HAVE_SYSTEM_ICONV TRUE)
       else()
@@ -1319,7 +1318,7 @@ if(ANDROID)
     set(SDL_AUDIO_DRIVER_OPENSLES 1)
     sdl_glob_sources(${SDL3_SOURCE_DIR}/src/audio/openslES/*.c)
 
-    list(APPEND SDL_EXTRA_LIBS ${ANDROID_DL_LIBRARY} OpenSLES)
+    sdl_link_libraries(${ANDROID_DL_LIBRARY} OpenSLES)
 
     set(SDL_AUDIO_DRIVER_AAUDIO 1)
     sdl_glob_sources(${SDL3_SOURCE_DIR}/src/audio/aaudio/*.c)
@@ -1376,7 +1375,7 @@ if(ANDROID)
     # Core stuff
     # find_library(ANDROID_DL_LIBRARY dl)
     # FIXME failing dlopen https://github.com/android-ndk/ndk/issues/929
-    list(APPEND SDL_EXTRA_LIBS dl log android)
+    sdl_link_libraries(dl log android)
     target_compile_definitions(sdl-build-options INTERFACE "GL_GLEXT_PROTOTYPES")
 
     #enable gles
@@ -1387,7 +1386,7 @@ if(ANDROID)
       set(SDL_VIDEO_OPENGL_ES2 1)
       set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-      list(APPEND SDL_EXTRA_LIBS GLESv1_CM GLESv2)
+      sdl_link_libraries(GLESv1_CM GLESv2)
     endif()
 
     if(SDL_VULKAN)
@@ -1480,7 +1479,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
     elseif(QNX)
         set(SDL_AUDIO_DRIVER_QNX 1)
         sdl_glob_sources(${SDL3_SOURCE_DIR}/src/audio/qnx/*.c)
-        list(APPEND SDL_EXTRA_LIBS asound)
+        sdl_link_libraries(asound)
         set(HAVE_SDL_AUDIO TRUE)
     endif()
     CheckOSS()
@@ -1621,7 +1620,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         if(INOTIFY_FOUND)
           set(HAVE_INOTIFY 1)
           target_include_directories(sdl-build-options SYSTEM INTERFACE ${INOTIFY_INCLUDE_DIRS})
-          list(APPEND SDL_EXTRA_LIBS ${INOTIFY_LIBRARIES})
+          sdl_link_libraries(${INOTIFY_LIBRARIES})
         endif()
       endif()
 
@@ -1704,7 +1703,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
       check_library_exists(rt clock_gettime "" FOUND_CLOCK_GETTIME_LIBRT)
       if(FOUND_CLOCK_GETTIME_LIBRT)
         set(HAVE_CLOCK_GETTIME 1)
-        list(APPEND SDL_EXTRA_LIBS rt)
+        sdl_link_libraries(rt)
       endif()
     endif()
   endif()
@@ -1971,11 +1970,12 @@ elseif(WINDOWS)
 
   # Libraries for Win32 native and MinGW
   if(NOT WINDOWS_STORE)
-    list(APPEND SDL_EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
+    sdl_link_libraries(user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
   endif()
 
   if(WINDOWS_STORE)
-    list(APPEND SDL_EXTRA_LIBS
+    # FIXME: use sdl_link_options
+    sdl_link_libraries(
       -nodefaultlib:vccorlib$<$<CONFIG:Debug>:d>
       -nodefaultlib:msvcrt$<$<CONFIG:Debug>:d>
       vccorlib$<$<CONFIG:Debug>:d>.lib
@@ -2030,7 +2030,7 @@ elseif(WINDOWS)
     endif()
     if(HAVE_DINPUT_H)
       set(SDL_JOYSTICK_DINPUT 1)
-      list(APPEND SDL_EXTRA_LIBS dinput8)
+      sdl_link_libraries(dinput8)
     endif()
     if(HAVE_XINPUT_H)
       if(NOT WINDOWS_STORE)
@@ -2364,7 +2364,7 @@ elseif(HAIKU)
       set(SDL_VIDEO_OPENGL 1)
       set(SDL_VIDEO_OPENGL_HAIKU 1)
       set(SDL_VIDEO_RENDER_OGL 1)
-      list(APPEND SDL_EXTRA_LIBS GL)
+      sdl_link_libraries(GL)
       set(HAVE_OPENGL TRUE)
     endif()
   endif()
@@ -2395,7 +2395,7 @@ elseif(HAIKU)
   sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/haiku/*.cc)
 
   CheckPTHREAD()
-  list(APPEND SDL_EXTRA_LIBS root be media game device textencoding)
+  sdl_link_libraries(root be media game device textencoding)
 
 elseif(RISCOS)
   if(SDL_MISC)
@@ -2502,7 +2502,7 @@ elseif(VITA)
 
       if(HAVE_PIGS_IN_BLANKET_H)
         set(SDL_VIDEO_OPENGL_ES2 1)
-        list(APPEND SDL_EXTRA_LIBS
+        sdl_link_libraries(
           pib
           libScePiglet_stub_weak
           taihen_stub_weak
@@ -2525,7 +2525,7 @@ elseif(VITA)
         set(SDL_VIDEO_OPENGL_ES2 1)
         set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-        list(APPEND SDL_EXTRA_LIBS
+        sdl_link_libraries(
           libgpu_es4_ext_stub_weak
           libIMGEGL_stub_weak
           SceIme_stub
@@ -2540,7 +2540,7 @@ elseif(VITA)
             set(HAVE_OPENGL TRUE)
             set(SDL_VIDEO_OPENGL 1)
             set(SDL_VIDEO_RENDER_OGL 1)
-            list(APPEND SDL_EXTRA_LIBS libGL_stub)
+            sdl_link_libraries(libGL_stub)
             set(SDL_VIDEO_VITA_PVR_OGL 1)
           endif()
         endif()
@@ -2552,7 +2552,7 @@ elseif(VITA)
 
     set(SDL_VIDEO_RENDER_VITA_GXM 1)
 
-    list(APPEND SDL_EXTRA_LIBS
+    sdl_link_libraries(
       SceGxm_stub
       SceDisplay_stub
       SceCtrl_stub
@@ -2577,61 +2577,61 @@ elseif(VITA)
   target_compile_definitions(sdl-build-options INTERFACE "__VITA__")
 
 elseif(PSP)
-  sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/psp/*.c)
+  sdl_glob_sources("${SDL3_SOURCE_DIR}/src/core/psp/*.c")
 
   if(SDL_AUDIO)
     set(SDL_AUDIO_DRIVER_PSP 1)
-    sdl_glob_sources(${SDL3_SOURCE_DIR}/src/audio/psp/*.c)
+    sdl_glob_sources("${SDL3_SOURCE_DIR}/src/audio/psp/*.c")
     set(HAVE_SDL_AUDIO TRUE)
   endif()
   if(SDL_FILESYSTEM)
     set(SDL_FILESYSTEM_PSP 1)
-    sdl_glob_sources(${SDL3_SOURCE_DIR}/src/filesystem/psp/*.c)
+    sdl_glob_sources("${SDL3_SOURCE_DIR}/src/filesystem/psp/*.c")
     set(HAVE_SDL_FILESYSTEM TRUE)
   endif()
   if(SDL_JOYSTICK)
     set(SDL_JOYSTICK_PSP 1)
-    sdl_glob_sources(${SDL3_SOURCE_DIR}/src/joystick/psp/*.c)
+    sdl_glob_sources("${SDL3_SOURCE_DIR}/src/joystick/psp/*.c")
     set(HAVE_SDL_JOYSTICK TRUE)
   endif()
   if(SDL_POWER)
     set(SDL_POWER_PSP 1)
-    sdl_glob_sources(${SDL3_SOURCE_DIR}/src/power/psp/*.c)
+    sdl_glob_sources("${SDL3_SOURCE_DIR}/src/power/psp/*.c")
     set(HAVE_SDL_POWER TRUE)
   endif()
   if(SDL_THREADS)
     set(SDL_THREAD_PSP 1)
     sdl_glob_sources(
-      ${SDL3_SOURCE_DIR}/src/thread/generic/SDL_systls.c
-      ${SDL3_SOURCE_DIR}/src/thread/generic/SDL_sysrwlock.c
-      ${SDL3_SOURCE_DIR}/src/thread/psp/*.c
+      "${SDL3_SOURCE_DIR}/src/thread/generic/SDL_systls.c"
+      "${SDL3_SOURCE_DIR}/src/thread/generic/SDL_sysrwlock.c"
+      "${SDL3_SOURCE_DIR}/src/thread/psp/*.c"
     )
     set(HAVE_SDL_THREADS TRUE)
   endif()
   if(SDL_TIMERS)
     set(SDL_TIMER_PSP 1)
-    sdl_glob_sources(${SDL3_SOURCE_DIR}/src/timer/psp/*.c)
+    sdl_glob_sources("${SDL3_SOURCE_DIR}/src/timer/psp/*.c")
     set(HAVE_SDL_TIMERS TRUE)
   endif()
   if(SDL_VIDEO)
     set(SDL_VIDEO_DRIVER_PSP 1)
     set(SDL_VIDEO_RENDER_PSP 1)
-    sdl_glob_sources(${SDL3_SOURCE_DIR}/src/video/psp/*.c)
+    sdl_glob_sources("${SDL3_SOURCE_DIR}/src/video/psp/*.c")
     set(SDL_VIDEO_OPENGL 1)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
 
-  list(APPEND SDL_EXTRA_LIBS
-      GL
-      pspvram
-      pspaudio
-      pspvfpu
-      pspdisplay
-      pspgu
-      pspge
-      psphprm
-      pspctrl
-      psppower
+  sdl_link_libraries(
+    GL
+    pspvram
+    pspaudio
+    pspvfpu
+    pspdisplay
+    pspgu
+    pspge
+    psphprm
+    pspctrl
+    psppower
   )
 
 elseif(PS2)
@@ -2682,7 +2682,7 @@ elseif(PS2)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
 
-  list(APPEND SDL_EXTRA_LIBS
+  sdl_link_libraries(
     patches
     gskit
     dmakit
@@ -2761,7 +2761,7 @@ elseif(N3DS)
     if(lib MATCHES "^-l")
       string(SUBSTRING "${lib}" 2 -1 lib)
     endif()
-    list(APPEND SDL_EXTRA_LIBS ${lib})
+    sdl_link_libraries(${lib})
   endforeach()
 endif()
 
@@ -2871,9 +2871,6 @@ file(GENERATE
 # Prepare the flags and remove duplicates
 if(SDL_EXTRA_LDFLAGS)
   list(REMOVE_DUPLICATES SDL_EXTRA_LDFLAGS)
-endif()
-if(SDL_EXTRA_LIBS)
-  list(REMOVE_DUPLICATES SDL_EXTRA_LIBS)
 endif()
 if(EXTRA_CFLAGS)
   list(REMOVE_DUPLICATES EXTRA_CFLAGS)
@@ -3047,7 +3044,8 @@ listtostr(SDL_EXTRA_LDFLAGS INFO_EXTRA_LDFLAGS)
 get_property(INFO_SHARED_LDFLAGS TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_OPTIONS)
 listtostr(INFO_SHARED_LDFLAGS INFO_SHARED_LDFLAGS)
 
-listtostr(SDL_EXTRA_LIBS INFO_EXTRA_LIBS)
+get_property(INFO_EXTRA_LIBS TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
+listtostr(INFO_EXTRA_LIBS INFO_EXTRA_LIBS)
 listtostr(SDL_CMAKE_DEPENDS INFO_CMAKE_DEPENDS)
 
 ##### Info output #####
@@ -3247,7 +3245,8 @@ if(SDL_SHARED)
     set_property(TARGET SDL3-shared APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS " /NODEFAULTLIB")
   endif()
   # FIXME: if CMAKE_VERSION >= 3.13, use target_link_options for SDL_EXTRA_LDFLAGS
-  target_link_libraries(SDL3-shared PRIVATE ${SDL_EXTRA_LIBS} ${SDL_EXTRA_LDFLAGS} ${SDL_CMAKE_DEPENDS})
+  get_property(sdl_shared_dep_libs TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
+  target_link_libraries(SDL3-shared PRIVATE ${sdl_shared_dep_libs} ${SDL_EXTRA_LDFLAGS} ${SDL_CMAKE_DEPENDS})
   target_include_directories(SDL3-shared
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
@@ -3297,7 +3296,8 @@ if(SDL_STATIC)
     endif()
   endif()
   target_compile_definitions(SDL3-static PRIVATE SDL_STATIC_LIB)
-  target_link_libraries(SDL3-static PRIVATE ${SDL_EXTRA_LIBS} ${SDL_EXTRA_LDFLAGS} ${SDL_CMAKE_DEPENDS})
+  get_property(sdl_static_dep_libs TARGET sdl-static-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
+  target_link_libraries(SDL3-static PRIVATE ${sdl_static_dep_libs} ${SDL_EXTRA_LDFLAGS} ${SDL_CMAKE_DEPENDS})
   target_include_directories(SDL3-static
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
@@ -3455,7 +3455,8 @@ if(NOT SDL_DISABLE_INSTALL)
   endif()
 
   # Clean up the different lists
-  listtostr(SDL_EXTRA_LIBS EXTRA_LIBS_L "-l")
+  get_property(sdl_static_libs TARGET sdl-static-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
+  listtostr(sdl_static_libs EXTRA_LIBS_L "-l")
   set(SDL_PC_STATIC_LIBS ${SDL_EXTRA_LDFLAGS} ${EXTRA_LIBS_L})
   list(REMOVE_DUPLICATES SDL_PC_STATIC_LIBS)
   listtostr(SDL_PC_STATIC_LIBS SDL_PC_STATIC_LIBS)
