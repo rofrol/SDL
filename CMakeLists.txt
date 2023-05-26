@@ -215,19 +215,6 @@ if(WINDOWS)
   set(SDL_SYSTEM_ICONV_DEFAULT OFF)
 endif()
 
-if(NOT ("$ENV{CFLAGS}" STREQUAL ""))
-  if(CMAKE_VERSION VERSION_LESS 3.11.0)
-     message(WARNING "SDL's CMakeLists.txt no longer checks the CFLAGS environment.")
-     message(WARNING "Please use CMake's CMAKE_C_FLAGS and CMAKE_BUILD_TYPE variables directly.")
-     message(WARNING "Or upgrade to CMake >= 3.11.0, which respects the CFLAGS environment var.")
-  endif()
-endif()
-
-# Build in parallel under Visual Studio. Not enabled by default.
-if(MSVC AND NOT USE_CLANG)
-  target_compile_options(sdl-build-options INTERFACE "/MP")
-endif()
-
 if(MSVC)
   option(SDL_FORCE_STATIC_VCRT "Force /MT for static VC runtimes" OFF)
   if(SDL_FORCE_STATIC_VCRT)
@@ -654,11 +641,6 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
       target_compile_options(sdl-build-options INTERFACE "-Wno-error=deprecated-declarations")
     endif()
     cmake_pop_check_state()
-
-    if(CMAKE_VERSION VERSION_LESS "3.6")
-      target_link_libraries(sdl-shared-build-options INTERFACE "-Wl,-compatibility_version,${SDL_DYLIB_COMPAT_VERSION}")
-      target_link_libraries(sdl-shared-build-options INTERFACE "-Wl,-current_version,${SDL_DYLIB_CURRENT_VERSION}")
-    endif()
   elseif(NOT OPENBSD)
     cmake_push_check_state()
     set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Wl,--no-undefined")
@@ -3090,7 +3072,7 @@ if(SDL_ASAN)
   endif()
 endif()
 
-if(SDL_CCACHE AND NOT CMAKE_VERSION VERSION_LESS 3.4)
+if(SDL_CCACHE)
   find_program(CCACHE_BINARY ccache)
   if(CCACHE_BINARY)
     set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_BINARY})
@@ -3327,12 +3309,10 @@ if(SDL_SHARED)
         RESOURCE "${SDL_FRAMEWORK_RESOURCES}"
       )
     endif()
-    if(NOT CMAKE_VERSION VERSION_LESS "3.6")
-      set_target_properties(SDL3-shared PROPERTIES
-        SOVERSION "${SDL_DYLIB_COMPAT_VERSION}" # SOVERSION corresponds to compatibility version
-        VERSION "${SDL_DYLIB_CURRENT_VERSION}"  # VERSION corresponds to the current version
-      )
-    endif()
+    set_target_properties(SDL3-shared PROPERTIES
+      SOVERSION "${SDL_DYLIB_COMPAT_VERSION}" # SOVERSION corresponds to compatibility version
+      VERSION "${SDL_DYLIB_CURRENT_VERSION}"  # VERSION corresponds to the current version
+    )
   elseif(UNIX AND NOT ANDROID)
     set_target_properties(SDL3-shared PROPERTIES
       VERSION "${SDL_SO_VERSION}"
