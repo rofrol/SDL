@@ -392,19 +392,13 @@ endif()
 # Set Apple App ID / Bundle ID.  This is needed to launch apps on some Apple
 # platforms (iOS, for example).
 if(APPLE)
-    if(CMAKE_VERSION VERSION_LESS "3.7.0")
-        # CMake's 'BUILDSYSTEM_TARGETS' property is only available in
-        # CMake 3.7 and above.
-        message(WARNING "Unable to set Bundle ID for Apple .app builds due to old CMake (pre 3.7).")
-    else()
-        foreach(CURRENT_TARGET ${SDL_TEST_EXECUTABLES})
-            set_target_properties("${CURRENT_TARGET}" PROPERTIES
-                MACOSX_BUNDLE_GUI_IDENTIFIER "org.libsdl.${CURRENT_TARGET}"
-                MACOSX_BUNDLE_BUNDLE_VERSION "${SDL3_VERSION}"
-                MACOSX_BUNDLE_SHORT_VERSION_STRING "${SDL3_VERSION}"
-            )
-        endforeach()
-    endif()
+  foreach(CURRENT_TARGET ${SDL_TEST_EXECUTABLES})
+    set_target_properties("${CURRENT_TARGET}" PROPERTIES
+      MACOSX_BUNDLE_GUI_IDENTIFIER "org.libsdl.${CURRENT_TARGET}"
+      MACOSX_BUNDLE_BUNDLE_VERSION "${SDL3_VERSION}"
+      MACOSX_BUNDLE_SHORT_VERSION_STRING "${SDL3_VERSION}"
+    )
+  endforeach()
 endif()
 
 set(TESTS_ENVIRONMENT
