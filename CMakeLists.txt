@@ -1819,7 +1819,7 @@ elseif(WINDOWS)
       if(NOT MINGW AND NOT USE_WINSDK_DIRECTX)
       # TODO: change $ENV{DXSDL_DIR} to get the path from the include checks
         target_link_directories(sdl-build-options INTERFACE "$$ENV{DXSDK_DIR}\\lib\\${PROCESSOR_ARCH}")
-        target_include_directories(sdl-build-options INTERFACE "$ENV{DXSDK_DIR}\\Include")
+        target_include_directories(sdl-build-options SYSTEM INTERFACE "$ENV{DXSDK_DIR}\\Include")
       endif()
     endif()
   endif()
@@ -2625,7 +2625,7 @@ elseif(PSP)
 
 elseif(PS2)
   target_compile_definitions(sdl-build-options INTERFACE "PS2" "__PS2__")
-  target_include_directories(sdl-build-options INTERFACE "$ENV{PS2SDK}/ports/include" "$ENV{PS2DEV}/gsKit/include")
+  target_include_directories(sdl-build-options SYSTEM INTERFACE "$ENV{PS2SDK}/ports/include" "$ENV{PS2DEV}/gsKit/include")
 
   sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/ps2/*.c)
 
