@@ -13,25 +13,9 @@ else()
   set(SDL3_SUBPROJECT ON)
 endif()
 
-set(SDL_EXTRA_LIBS)
-set(SDL_EXTRA_LDFLAGS)
-
-set(SDL_CMAKE_DEPENDS)
-set(SDL_PC_PRIVATE_REQUIRES)
-
-# The sdl-build-options interface library collects all PRIVATE build options for the SDL libraries
-add_library(sdl-build-options INTERFACE)
-
-# The sdl-shared-build-options interface library collects all PRIVATE build options for the SDL shared library
-add_library(sdl-shared-build-options INTERFACE)
-
+#FIXME: Create SDL3::checks target in include, and use that
 # The sdl-global-options interface library collects all PRIVATE build options for the SDL libraries + test + ...
 add_library(sdl-global-options INTERFACE)
-
-if(WINDOWS_STORE)
-  target_compile_definitions(sdl-build-options INTERFACE "SDL_BUILDING_WINRT=1")
-  target_compile_options(sdl-build-options INTERFACE "-ZW")
-endif()
 
 # CMake 3.0 expands the "if(${A})" in "set(OFF 1);set(A OFF);if(${A})" to "if(1)"
 # CMake 3.24+ emits a warning when not set.
@@ -55,24 +39,20 @@ include(CMakeParseArguments)
 include(CMakePushCheckState)
 include(GNUInstallDirs)
 
+if(NOT DEFINED OpenGL_GL_PREFERENCE)
+  set(OpenGL_GL_PREFERENCE GLVND)
+endif()
+
 find_package(PkgConfig)
 
 list(APPEND CMAKE_MODULE_PATH "${SDL3_SOURCE_DIR}/cmake")
 include(${SDL3_SOURCE_DIR}/cmake/macros.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdlchecks.cmake)
-include(${SDL3_SOURCE_DIR}/cmake/sdlfind.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdlplatform.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdltargets.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/CheckCPUArchitecture.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/GetGitRevisionDescription.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/3rdparty.cmake)
-
-# Enable large file support on 32-bit glibc, so that we can access files
-# with large inode numbers
-check_symbol_exists("__GLIBC__" "stdlib.h" LIBC_IS_GLIBC)
-if (LIBC_IS_GLIBC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-    target_compile_definitions(sdl-build-options INTERFACE "_FILE_OFFSET_BITS=64")
-endif()
 
 if(CMAKE_VERSION VERSION_LESS "3.26")
   set(build_local_interface "BUILD_INTERFACE")
@@ -109,22 +89,11 @@ set(SDL_DYLIB_COMPAT_VERSION "${SDL_DYLIB_COMPAT_VERSION_MAJOR}.${SDL_DYLIB_COMP
 
 set(SDL_FRAMEWORK_VERSION "A")
 
-SDL_DetectCPUArchitecture()
-
-# Check for 64 or 32 bit
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set(ARCH_64 TRUE)
-  set(PROCESSOR_ARCH "x64")
-else()
-  set(ARCH_64 FALSE)
-  set(PROCESSOR_ARCH "x86")
-endif()
-
 set(SDL_CHECK_REQUIRED_INCLUDES "" CACHE STRING "Extra includes (for CMAKE_REQUIRED_INCLUDES)")
 set(SDL_CHECK_REQUIRED_LINK_OPTIONS "" CACHE STRING "Extra link options (for CMAKE_REQUIRED_LINK_OPTIONS)")
 mark_as_advanced(SDL_CHECK_REQUIRED_INCLUDES SDL_CHECK_REQUIRED_LINK_OPTIONS)
 
-set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -D_GNU_SOURCE=1")
+string(APPEND CMAKE_REQUIRED_FLAGS " -D_GNU_SOURCE=1")
 list(APPEND CMAKE_REQUIRED_INCLUDES ${SDL_CHECK_REQUIRED_INCLUDES})
 list(APPEND CMAKE_REQUIRED_LINK_OPTIONS ${SDL_CHECK_REQUIRED_LINK_OPTIONS})
 
@@ -247,60 +216,10 @@ if(MSVC)
   endif()
 endif()
 
-# Those are used for pkg-config so sdl3.pc is created correctly.
-set(SDL_PC_LIBS "-lSDL3")
-set(SDL_PC_CFLAGS )
+set(SDL_SHARED_DEFAULT ON)
+set(SDL_STATIC_DEFAULT ON)
 
-# When building shared lib for Windows with MinGW,
-# avoid the DLL having a "lib" prefix
-if(WINDOWS)
-  set(CMAKE_SHARED_LIBRARY_PREFIX "")
-endif()
-
-check_linker_flag(C "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym" HAVE_WL_VERSION_SCRIPT)
-if(HAVE_WL_VERSION_SCRIPT)
-  target_link_libraries(sdl-shared-build-options INTERFACE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym")
-else()
-  if((LINUX AND LIBC_IS_GLIBC) OR ANDROID)
-    message(FATAL_ERROR "Linker does not support '-Wl,--version-script=xxx.sym'. This is required on the current host platform (${SDL_CMAKE_PLATFORM}).")
-  endif()
-endif()
-
-if(CYGWIN)
-  # We build SDL on cygwin without the UNIX emulation layer
-  target_include_directories(sdl-build-options SYSTEM INTERFACE "/usr/include/mingw")
-  cmake_push_check_state()
-  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mno-cygwin")
-  check_c_source_compiles("int main(int argc, char **argv) { return 0; }"
-    HAVE_GCC_NO_CYGWIN)
-  cmake_pop_check_state()
-  if(HAVE_GCC_NO_CYGWIN)
-    target_link_libraries(sdl-shared-build-options INTERFACE "-mno-cygwin")
-  endif()
-  list(APPEND SDL_PC_CFLAGS "-I/usr/include/mingw")
-endif()
-
-# General includes
-target_compile_definitions(sdl-build-options INTERFACE "USING_GENERATED_CONFIG_H")
-target_include_directories(sdl-build-options
-  INTERFACE
-    "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>"
-    "${SDL3_BINARY_DIR}/include"
-    "${SDL3_SOURCE_DIR}/include"
-)
-# Note: The clang toolset for Visual Studio does not support the '-idirafter' option.
-if(USE_GCC OR USE_INTELCC OR (USE_CLANG AND NOT MSVC_CLANG))
-  if(CMAKE_VERSION VERSION_LESS 3.12)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -idirafter \"${SDL3_SOURCE_DIR}/src/video/khronos\"")
-  else()
-    target_compile_options(sdl-global-options INTERFACE "SHELL:-idirafter \"${SDL3_SOURCE_DIR}/src/video/khronos\"")
-  endif()
-else()
-  target_include_directories(sdl-global-options SYSTEM INTERFACE "${SDL3_SOURCE_DIR}/src/video/khronos")
-endif()
-
-set(SDL_SHARED_ENABLED_BY_DEFAULT ON)
-set(SDL_STATIC_ENABLED_BY_DEFAULT ON)
+set(SDL_SHARED_AVAILABLE ON)
 
 # All these ENABLED_BY_DEFAULT vars will default to ON if not specified, so
 #  you only need to have a platform override them if they are disabling.
@@ -313,28 +232,28 @@ if(EMSCRIPTEN)
   # !!! FIXME: most of these subsystems should default to ON if there are dummy implementations to be used.
 
   set(SDL_ASSEMBLY_DEFAULT FALSE)
-  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+  set(SDL_SHARED_AVAILABLE OFF)
   set(SDL_ATOMIC_ENABLED_BY_DEFAULT OFF)
   set(SDL_LOADSO_ENABLED_BY_DEFAULT OFF)
   set(SDL_CPUINFO_ENABLED_BY_DEFAULT OFF)
 endif()
 
 if(VITA OR PSP OR PS2 OR N3DS OR RISCOS)
-  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+  set(SDL_SHARED_AVAILABLE OFF)
   set(SDL_LOADSO_ENABLED_BY_DEFAULT OFF)
 endif()
 
-if(SDL_SHARED_ENABLED_BY_DEFAULT AND SDL_STATIC_ENABLED_BY_DEFAULT)
+if(SDL_SHARED_DEFAULT AND SDL_STATIC_DEFAULT AND SDL_SHARED_AVAILABLE)
   if(DEFINED BUILD_SHARED_LIBS)
     # When defined, use BUILD_SHARED_LIBS as default
     if(BUILD_SHARED_LIBS)
-      set(SDL_STATIC_ENABLED_BY_DEFAULT OFF)
+      set(SDL_STATIC_DEFAULT OFF)
     else()
-      set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+      set(SDL_SHARED_DEFAULT OFF)
     endif()
   else()
     # Default to just building the shared library
-    set(SDL_STATIC_ENABLED_BY_DEFAULT OFF)
+    set(SDL_STATIC_DEFAULT OFF)
   endif()
 endif()
 
@@ -413,15 +332,15 @@ dep_option(SDL_WAYLAND_SHARED      "Dynamically load Wayland support" ON "SDL_WA
 dep_option(SDL_WAYLAND_LIBDECOR    "Use client-side window decorations on Wayland" ON "SDL_WAYLAND" OFF)
 dep_option(SDL_WAYLAND_LIBDECOR_SHARED     "Dynamically load libdecor support" ON "SDL_WAYLAND_LIBDECOR;SDL_WAYLAND_SHARED" OFF)
 dep_option(SDL_WAYLAND_QT_TOUCH    "QtWayland server support for Wayland video driver" ON "SDL_WAYLAND" OFF)
-set_option(SDL_RPI                 "Use Raspberry Pi video driver" ${UNIX_SYS})
-set_option(SDL_ROCKCHIP            "Use ROCKCHIP Hardware Acceleration video driver" ${UNIX_SYS})
+dep_option(SDL_RPI                 "Use Raspberry Pi video driver" ON "UNIX_SYS;SDL_CPU_ARM32 OR SDL_CPU_ARM64" OFF)
+dep_option(SDL_ROCKCHIP            "Use ROCKCHIP Hardware Acceleration video driver" ON "UNIX_SYS;SDL_CPU_ARM32 OR SDL_CPU_ARM64" OFF)
 set_option(SDL_COCOA               "Use Cocoa video driver" ${APPLE})
 set_option(SDL_DIRECTX             "Use DirectX for Windows audio/video" ${WINDOWS})
 set_option(SDL_XINPUT              "Use Xinput for Windows" ${WINDOWS})
 set_option(SDL_WASAPI              "Use the Windows WASAPI audio driver" ${WINDOWS})
 set_option(SDL_RENDER_D3D          "Enable the Direct3D render driver" ${WINDOWS})
 set_option(SDL_RENDER_METAL        "Enable the Metal render driver" ${APPLE})
-set_option(SDL_VIVANTE             "Use Vivante EGL video driver" ${UNIX_SYS})
+dep_option(SDL_VIVANTE             "Use Vivante EGL video driver" ON "${UNIX_SYS};SDL_CPU_ARM32" OFF)
 dep_option(SDL_VULKAN              "Enable Vulkan support" ON "ANDROID OR APPLE OR LINUX OR WINDOWS" OFF)
 set_option(SDL_METAL               "Enable Metal support" ${APPLE})
 set_option(SDL_KMSDRM              "Use KMS DRM video driver" ${UNIX_SYS})
@@ -435,14 +354,15 @@ dep_option(SDL_HIDAPI_JOYSTICK     "Use HIDAPI for low level joystick drivers" O
 dep_option(SDL_VIRTUAL_JOYSTICK    "Enable the virtual-joystick driver" ON SDL_HIDAPI OFF)
 set_option(SDL_LIBUDEV             "Enable libudev support" ON)
 set_option(SDL_ASAN                "Use AddressSanitizer to detect memory errors" OFF)
-option_string(SDL_VENDOR_INFO      "Vendor name and/or version to add to SDL_REVISION" "")
 set_option(SDL_CCACHE              "Use Ccache to speed up build" OFF)
 set_option(SDL_CLANG_TIDY          "Run clang-tidy static analysis" OFF)
 
 option(SDL_WERROR "Enable -Werror" OFF)
 
-option(SDL_SHARED "Build a shared version of the library" ${SDL_SHARED_ENABLED_BY_DEFAULT})
-option(SDL_STATIC "Build a static version of the library" ${SDL_STATIC_ENABLED_BY_DEFAULT})
+set(SDL_VENDOR_INFO "" CACHE STRING "Vendor name and/or version to add to SDL_REVISION")
+
+cmake_dependent_option(SDL_SHARED "Build a shared version of the library" ${SDL_SHARED_DEFAULT} ${SDL_SHARED_AVAILABLE} OFF)
+option(SDL_STATIC "Build a static version of the library" ${SDL_STATIC_DEFAULT})
 option(SDL_TEST   "Build the SDL3_test library" ON)
 
 # Apple Frameworks NEED a (shared) SDL3.framework for `#include <SDL3/xxx.h>` to work
@@ -452,11 +372,85 @@ dep_option(SDL_STATIC_PIC      "Static version of the library should be built wi
 dep_option(SDL_TESTS           "Build the test directory" OFF SDL_TEST OFF)
 dep_option(SDL_INSTALL_TESTS   "Install test-cases" OFF "NOT SDL_DISABLE_INSTALL;NOT SDL_FRAMEWORK" OFF)
 
-set(HAVE_STATIC_PIC "${SDL_STATIC_PIC}")
-
 if(VITA)
   set_option(VIDEO_VITA_PIB  "Build with PSVita piglet gles2 support" OFF)
   set_option(VIDEO_VITA_PVR  "Build with PSVita PVR gles/gles2 support" OFF)
+endif()
+
+set(HAVE_STATIC_PIC "${SDL_STATIC_PIC}")
+
+if(SDL_SHARED)
+  add_library(SDL3-shared SHARED)
+  add_library(SDL3::SDL3-shared ALIAS SDL3-shared)
+endif()
+
+if(SDL_STATIC)
+  add_library(SDL3-static STATIC)
+  add_library(SDL3::SDL3-static ALIAS SDL3-static)
+endif()
+
+# Make sure SDL3::SDL3 always exists
+if(TARGET SDL3::SDL3-shared)
+  add_library(SDL3::SDL3 ALIAS SDL3-shared)
+else()
+  add_library(SDL3::SDL3 ALIAS SDL3-static)
+endif()
+
+sdl_pc_link_options("-lSDL3")
+
+# Enable large file support on 32-bit glibc, so that we can access files
+# with large inode numbers
+check_symbol_exists("__GLIBC__" "stdlib.h" LIBC_IS_GLIBC)
+if (LIBC_IS_GLIBC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+  sdl_compile_definitions(PRIVATE "_FILE_OFFSET_BITS=64")
+endif()
+
+# When building shared lib for Windows with MinGW,
+# avoid the DLL having a "lib" prefix
+if(WINDOWS)
+  set(CMAKE_SHARED_LIBRARY_PREFIX "")
+endif()
+
+if(WINDOWS_STORE)
+  sdl_compile_definitions(PRIVATE "SDL_BUILDING_WINRT=1")
+  sdl_compile_options(PRIVATE "-ZW")
+endif()
+
+check_linker_flag(C "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym" HAVE_WL_VERSION_SCRIPT)
+if(HAVE_WL_VERSION_SCRIPT)
+  sdl_shared_link_options("-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/dynapi/SDL_dynapi.sym")
+else()
+  if((LINUX AND LIBC_IS_GLIBC) OR ANDROID)
+    message(FATAL_ERROR "Linker does not support '-Wl,--version-script=xxx.sym'. This is required on the current host platform (${SDL_CMAKE_PLATFORM}).")
+  endif()
+endif()
+
+if(CYGWIN)
+  # We build SDL on cygwin without the UNIX emulation layer
+  sdl_include_directories(PUBLIC SYSTEM "/usr/include/mingw")
+  cmake_push_check_state()
+  string(APPEND CMAKE_REQUIRED_FLAGS " -mno-cygwin")
+  check_c_source_compiles("int main(int argc, char **argv) { return 0; }"
+    HAVE_GCC_NO_CYGWIN)
+  cmake_pop_check_state()
+  if(HAVE_GCC_NO_CYGWIN)
+    sdl_shared_link_options("-mno-cygwin")
+  endif()
+endif()
+
+# General includes
+sdl_compile_definitions(PRIVATE "USING_GENERATED_CONFIG_H")
+sdl_include_directories(
+  PRIVATE
+    "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>"
+    "${SDL3_BINARY_DIR}/include"
+    "${SDL3_SOURCE_DIR}/include"
+)
+# Note: The clang toolset for Visual Studio does not support the '-idirafter' option.
+if(USE_GCC OR USE_INTELCC OR (USE_CLANG AND NOT MSVC_CLANG))
+  sdl_compile_options(NO_EXPORT PUBLIC "-idirafter${SDL3_SOURCE_DIR}/src/video/khronos")
+else()
+  sdl_include_directories(NO_EXPORT SYSTEM PUBLIC "${SDL3_SOURCE_DIR}/src/video/khronos")
 endif()
 
 # General source files
@@ -519,11 +513,11 @@ endif()
 set(HAVE_ASSERTIONS ${SDL_ASSERTIONS})
 
 if(NOT SDL_BACKGROUNDING_SIGNAL STREQUAL "OFF")
-  target_compile_definitions(sdl-build-options INTERFACE "SDL_BACKGROUNDING_SIGNAL=${SDL_BACKGROUNDING_SIGNAL}")
+  sdl_compile_definitions(PRIVATE "SDL_BACKGROUNDING_SIGNAL=${SDL_BACKGROUNDING_SIGNAL}")
 endif()
 
 if(NOT SDL_FOREGROUNDING_SIGNAL STREQUAL "OFF")
-  target_compile_definitions(sdl-build-options INTERFACE "SDL_FOREGROUNDING_SIGNAL=${SDL_FOREGROUNDING_SIGNAL}")
+  sdl_compile_definitions(PRIVATE "SDL_FOREGROUNDING_SIGNAL=${SDL_FOREGROUNDING_SIGNAL}")
 endif()
 
 # Compiler option evaluation
@@ -583,14 +577,6 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
     endif()
   endif()
 
-  if(DEPENDENCY_TRACKING)
-    check_c_source_compiles("
-        #if !defined(__GNUC__) || __GNUC__ < 3
-        #error Dependency tracking requires GCC 3.0 or newer
-        #endif
-        int main(int argc, char **argv) { return 0; }" HAVE_DEPENDENCY_TRACKING)
-  endif()
-
   if(SDL_GCC_ATOMICS)
     check_c_source_compiles("int main(int argc, char **argv) {
         int a;
@@ -613,7 +599,7 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
   endif()
 
   cmake_push_check_state()
-  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -fvisibility=hidden -Werror")
+  string(APPEND CMAKE_REQUIRED_FLAGS " -fvisibility=hidden -Werror")
   check_c_source_compiles("
       #if !defined(__GNUC__) || __GNUC__ < 4
       #error SDL only uses visibility attributes in GCC 4 or newer
@@ -640,16 +626,16 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
     # FIXME: don't use deprecated declarations
     check_c_compiler_flag(-Wno-error=deprecated-declarations HAVE_WNO_ERROR_DEPRECATED_DECLARATIONS)
     if(HAVE_WNO_ERROR_DEPRECATED_DECLARATIONS)
-      target_compile_options(sdl-build-options INTERFACE "-Wno-error=deprecated-declarations")
+      sdl_compile_options(PRIVATE "-Wno-error=deprecated-declarations")
     endif()
     cmake_pop_check_state()
   elseif(NOT OPENBSD)
     cmake_push_check_state()
-    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Wl,--no-undefined")
+    string(APPEND CMAKE_REQUIRED_FLAGS " -Wl,--no-undefined")
     check_c_compiler_flag("" HAVE_NO_UNDEFINED)
     cmake_pop_check_state()
     if(HAVE_NO_UNDEFINED AND NOT (USE_CLANG AND WINDOWS))
-      target_link_options(sdl-shared-build-options INTERFACE "-Wl,--no-undefined")
+      sdl_shared_link_options("-Wl,--no-undefined")
     endif()
   endif()
 
@@ -673,14 +659,18 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
     endif()
   endif()
 endif()
+
 if(MSVC)
-  target_compile_definitions(sdl-build-options INTERFACE "_CRT_SECURE_NO_DEPRECATE")
-  target_compile_definitions(sdl-build-options INTERFACE "_CRT_NONSTDC_NO_DEPRECATE")
-  target_compile_definitions(sdl-build-options INTERFACE "_CRT_SECURE_NO_WARNINGS")
+  sdl_compile_definitions(
+    PRIVATE
+      "_CRT_SECURE_NO_DEPRECATE"
+      "_CRT_NONSTDC_NO_DEPRECATE"
+      "_CRT_SECURE_NO_WARNINGS"
+  )
 
   # CET support was added in VS 16.7
   if(MSVC_VERSION GREATER 1926 AND CMAKE_GENERATOR_PLATFORM MATCHES "Win32|x64")
-    target_link_libraries(sdl-shared-build-options INTERFACE "-CETCOMPAT")
+    sdl_shared_link_options("-CETCOMPAT")
   endif()
 endif()
 
@@ -696,7 +686,7 @@ if(SDL_ASSEMBLY)
   if(SDL_MMX)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mmmx")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -mmmx")
     endif()
     check_c_source_compiles("
       #include <mmintrin.h>
@@ -717,7 +707,7 @@ if(SDL_ASSEMBLY)
   if(SDL_SSE)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -msse")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -msse")
     endif()
     check_c_source_compiles("
       #include <xmmintrin.h>
@@ -738,7 +728,7 @@ if(SDL_ASSEMBLY)
   if(SDL_SSE2)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -msse2")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -msse2")
     endif()
     check_c_source_compiles("
       #include <emmintrin.h>
@@ -759,7 +749,7 @@ if(SDL_ASSEMBLY)
   if(SDL_SSE3)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -msse3")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -msse3")
     endif()
     check_c_source_compiles("
       #include <pmmintrin.h>
@@ -780,7 +770,7 @@ if(SDL_ASSEMBLY)
   if(SDL_SSE4_1)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -msse4.1")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -msse4.1")
     endif()
     check_c_source_compiles("
       #include <smmintrin.h>
@@ -801,7 +791,7 @@ if(SDL_ASSEMBLY)
   if(SDL_SSE4_2)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -msse4.2")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -msse4.2")
     endif()
     check_c_source_compiles("
       #include <nmmintrin.h>
@@ -824,7 +814,7 @@ if(SDL_ASSEMBLY)
   if(SDL_AVX)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mavx")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -mavx")
     endif()
     check_c_source_compiles("
       #include <immintrin.h>
@@ -845,7 +835,7 @@ if(SDL_ASSEMBLY)
   if(SDL_AVX2)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mavx2")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -mavx2")
     endif()
     check_c_source_compiles("
       #include <immintrin.h>
@@ -866,7 +856,7 @@ if(SDL_ASSEMBLY)
   if(SDL_AVX512F)
     cmake_push_check_state()
     if(USE_GCC OR USE_CLANG OR USE_INTELCC)
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mavx512f")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -mavx512f")
     endif()
     check_c_source_compiles("
       #include <immintrin.h>
@@ -891,7 +881,7 @@ if(SDL_ASSEMBLY)
 
     if(SDL_ALTIVEC)
       cmake_push_check_state()
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -maltivec")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -maltivec")
       check_c_source_compiles("
           #include <altivec.h>
           vector unsigned int vzero() {
@@ -902,7 +892,7 @@ if(SDL_ASSEMBLY)
       if(COMPILER_SUPPORTS_ALTIVEC)
         set(HAVE_ALTIVEC TRUE)
         set(SDL_ALTIVEC_BLITTERS 1)
-        target_compile_options(sdl-build-options INTERFACE "-maltivec")
+        sdl_compile_options(PRIVATE "-maltivec")
         set_property(SOURCE "${SDL3_SOURCE_DIR}/src/video/SDL_blit_N.c" APPEND PROPERTY COMPILE_DEFINITIONS "SDL_ENABLE_ALTIVEC")
         set_property(SOURCE "${SDL3_SOURCE_DIR}/src/video/SDL_blit_N.c" PROPERTY SKIP_PRECOMPILE_HEADERS 1)
       endif()
@@ -910,7 +900,7 @@ if(SDL_ASSEMBLY)
 
     if(SDL_LSX)
       cmake_push_check_state()
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mlsx")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -mlsx")
       check_c_source_compiles("
           #ifndef __loongarch_sx
           #error Assembler CPP flag not enabled
@@ -926,7 +916,7 @@ if(SDL_ASSEMBLY)
 
     if(SDL_LASX)
       cmake_push_check_state()
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mlasx")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -mlasx")
       check_c_source_compiles("
           #ifndef __loongarch_asx
           #error Assembler CPP flag not enabled
@@ -941,7 +931,7 @@ if(SDL_ASSEMBLY)
 
     if(SDL_ARMSIMD)
       cmake_push_check_state()
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -x assembler-with-cpp")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -x assembler-with-cpp")
       list(APPEND CMAKE_REQUIRED_LINK_OPTIONS -x none)
       check_c_source_compiles("
         .text
@@ -971,7 +961,7 @@ if(SDL_ASSEMBLY)
 
     if(SDL_ARMNEON_BLITTERS)
       cmake_push_check_state()
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -x assembler-with-cpp")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -x assembler-with-cpp")
       list(APPEND CMAKE_REQUIRED_LINK_OPTIONS -x none)
       check_c_source_compiles("
         .text
@@ -1068,8 +1058,7 @@ if(NOT HAVE_ARMNEON)
   set(SDL_DISABLE_NEON 1)
 endif()
 
-# TODO: Can't deactivate on FreeBSD? w/o LIBC, SDL_stdinc.h can't define
-# anything.
+# TODO: Can't deactivate on FreeBSD? w/o LIBC, SDL_stdinc.h can't define anything.
 if(SDL_LIBC)
   if(WINDOWS AND NOT MINGW)
     set(HAVE_LIBC TRUE)
@@ -1088,24 +1077,24 @@ if(SDL_LIBC)
   else()
     set(HAVE_LIBC TRUE)
     set(headers_to_check
-        ctype.h
-        float.h
-        iconv.h
-        inttypes.h
-        limits.h
-        malloc.h
-        math.h
-        memory.h
-        signal.h
-        stdarg.h
-        stddef.h
-        stdint.h
-        stdio.h
-        stdlib.h
-        string.h
-        strings.h
-        sys/types.h
-        wchar.h
+      ctype.h
+      float.h
+      iconv.h
+      inttypes.h
+      limits.h
+      malloc.h
+      math.h
+      memory.h
+      signal.h
+      stdarg.h
+      stddef.h
+      stdint.h
+      stdio.h
+      stdlib.h
+      string.h
+      strings.h
+      sys/types.h
+      wchar.h
     )
     if(NOT EMSCRIPTEN)
       list(APPEND headers_to_check libunwind.h)
@@ -1159,14 +1148,14 @@ if(SDL_LIBC)
     if(HAVE_LIBM)
       cmake_pop_check_state()
       if(NOT VITA)
-        list(APPEND SDL_EXTRA_LIBS m)
+        sdl_add_dependency(math LIBS m)
       endif()
     endif()
 
     if(SDL_SYSTEM_ICONV)
       check_library_exists(iconv iconv_open "" HAVE_LIBICONV)
       if(HAVE_LIBICONV)
-        list(APPEND SDL_EXTRA_LIBS iconv)
+        sdl_add_dependency(iconv LIBS iconv)
         set(HAVE_ICONV 1)
         set(HAVE_SYSTEM_ICONV TRUE)
       else()
@@ -1293,7 +1282,7 @@ if(ANDROID)
   # see: https://issuetracker.google.com/issues/62264618
   # Another option would be to set ARM mode to all compiled files
   cmake_push_check_state()
-  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Werror=unused-command-line-argument")
+  string(APPEND CMAKE_REQUIRED_FLAGS " -Werror=unused-command-line-argument")
   check_c_compiler_flag(-marm HAVE_ARM_MODE)
   cmake_pop_check_state()
   if(HAVE_ARM_MODE)
@@ -1308,7 +1297,7 @@ if(ANDROID)
     set(SDL_AUDIO_DRIVER_OPENSLES 1)
     sdl_glob_sources(${SDL3_SOURCE_DIR}/src/audio/openslES/*.c)
 
-    list(APPEND SDL_EXTRA_LIBS ${ANDROID_DL_LIBRARY} OpenSLES)
+    sdl_add_dependency(opensles LIBS ${ANDROID_DL_LIBRARY} OpenSLES)
 
     set(SDL_AUDIO_DRIVER_AAUDIO 1)
     sdl_glob_sources(${SDL3_SOURCE_DIR}/src/audio/aaudio/*.c)
@@ -1365,8 +1354,8 @@ if(ANDROID)
     # Core stuff
     # find_library(ANDROID_DL_LIBRARY dl)
     # FIXME failing dlopen https://github.com/android-ndk/ndk/issues/929
-    list(APPEND SDL_EXTRA_LIBS dl log android)
-    target_compile_definitions(sdl-build-options INTERFACE "GL_GLEXT_PROTOTYPES")
+    sdl_add_dependency(android_video LIBS dl log android)
+    sdl_compile_definitions(PRIVATE "GL_GLEXT_PROTOTYPES")
 
     #enable gles
     if(SDL_OPENGLES)
@@ -1376,7 +1365,7 @@ if(ANDROID)
       set(SDL_VIDEO_OPENGL_ES2 1)
       set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-      list(APPEND SDL_EXTRA_LIBS GLESv1_CM GLESv2)
+      sdl_add_dependency(opengles LIBS GLESv1_CM GLESv2)
     endif()
 
     if(SDL_VULKAN)
@@ -1401,7 +1390,7 @@ if(ANDROID)
 elseif(EMSCRIPTEN)
   # Hide noisy warnings that intend to aid mostly during initial stages of porting a new
   # project. Uncomment at will for verbose cross-compiling -I/../ path info.
-  target_compile_options(sdl-build-options INTERFACE "-Wno-warn-absolute-paths")
+  sdl_compile_options(PRIVATE "-Wno-warn-absolute-paths")
 
   if(SDL_MISC)
     sdl_glob_sources(${SDL3_SOURCE_DIR}/src/misc/emscripten/*.c)
@@ -1469,7 +1458,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
     elseif(QNX)
         set(SDL_AUDIO_DRIVER_QNX 1)
         sdl_glob_sources(${SDL3_SOURCE_DIR}/src/audio/qnx/*.c)
-        list(APPEND SDL_EXTRA_LIBS asound)
+        sdl_add_dependency(asound LIBS asound)
         set(HAVE_SDL_AUDIO TRUE)
     endif()
     CheckOSS()
@@ -1486,7 +1475,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
     # Need to check for ROCKCHIP platform and get rid of "Can't window GBM/EGL surfaces on window creation."
     CheckROCKCHIP()
     CheckX11()
-    # Need to check for EGL first because KMSDRM and Wayland depends on it.
+    # Need to check for EGL first because KMSDRM and Wayland depend on it.
     CheckEGL()
     CheckKMSDRM()
     CheckGLX()
@@ -1584,7 +1573,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         pkg_search_module(DBUS dbus-1 dbus)
         if(DBUS_FOUND)
           set(HAVE_DBUS_DBUS_H TRUE)
-          target_include_directories(sdl-build-options SYSTEM INTERFACE ${DBUS_INCLUDE_DIRS})
+          sdl_include_directories(PRIVATE SYSTEM ${DBUS_INCLUDE_DIRS})
           # Fcitx need only dbus.
           set(HAVE_FCITX TRUE)
           set(HAVE_DBUS TRUE)
@@ -1596,7 +1585,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         find_path(HAVE_SYS_INOTIFY_H NAMES sys/inotify.h)
         if(IBUS_FOUND AND HAVE_SYS_INOTIFY_H)
           set(HAVE_IBUS_IBUS_H TRUE)
-          target_include_directories(sdl-build-options SYSTEM INTERFACE ${IBUS_INCLUDE_DIRS})
+          sdl_include_directories(PRIVATE SYSTEM ${IBUS_INCLUDE_DIRS})
           set(HAVE_IBUS TRUE)
         endif()
       endif()
@@ -1606,11 +1595,10 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
       endif()
 
       if(FREEBSD AND NOT HAVE_INOTIFY)
-        pkg_search_module(INOTIFY libinotify)
-        if(INOTIFY_FOUND)
+        find_package(LibInotify MODULE)
+        if(LibInotify_FOUND)
           set(HAVE_INOTIFY 1)
-          target_include_directories(sdl-build-options SYSTEM INTERFACE ${INOTIFY_INCLUDE_DIRS})
-          list(APPEND SDL_EXTRA_LIBS ${INOTIFY_LIBRARIES})
+          sdl_add_dependency(libinotify LIBS LibInotify::LibInotify CMAKE_MODULE LibInotify PKG_CONFIG_SPECS ${LibInotify_PKG_CONFIG_SPEC})
         endif()
       endif()
 
@@ -1618,9 +1606,9 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         # We've already found the header, so link the lib if present.
         # NB: This .pc file is not present on FreeBSD where the implicitly
         # linked base system libgcc_s includes all libunwind ABI.
-        pkg_search_module(UNWIND libunwind)
-        pkg_search_module(UNWIND_GENERIC libunwind-generic)
-        list(APPEND EXTRA_TEST_LIBS ${UNWIND_LIBRARIES} ${UNWIND_GENERIC_LIBRARIES})
+        pkg_search_module(PKG_UNWIND libunwind)
+        pkg_search_module(PKG_UNWIND_GENERIC libunwind-generic)
+        list(APPEND EXTRA_TEST_LIBS ${PKG_UNWIND_LIBRARIES} ${PKG_UNWIND_GENERIC_LIBRARIES})
       endif()
     endif()
 
@@ -1693,7 +1681,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
       check_library_exists(rt clock_gettime "" FOUND_CLOCK_GETTIME_LIBRT)
       if(FOUND_CLOCK_GETTIME_LIBRT)
         set(HAVE_CLOCK_GETTIME 1)
-        list(APPEND SDL_EXTRA_LIBS rt)
+        sdl_add_dependency(clock LIBS rt)
       endif()
     endif()
   endif()
@@ -1732,7 +1720,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
   if(SDL_RPATH AND SDL_SHARED)
     if(BSDI OR FREEBSD OR LINUX OR NETBSD)
       cmake_push_check_state()
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Wl,--enable-new-dtags")
+      string(APPEND CMAKE_REQUIRED_FLAGS " -Wl,--enable-new-dtags")
       check_c_compiler_flag("" HAVE_ENABLE_NEW_DTAGS)
       cmake_pop_check_state()
       if(HAVE_ENABLE_NEW_DTAGS)
@@ -1766,11 +1754,11 @@ elseif(WINDOWS)
     sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/winrt/*.c ${SDL3_SOURCE_DIR}/src/core/winrt/*.cpp)
   endif()
 
-  if(MSVC AND NOT SDL_LIBC)
+  if(TARGET SDL3-shared AND MSVC AND NOT SDL_LIBC)
     # Prevent codegen that would use the VC runtime libraries.
-    set_property(DIRECTORY . APPEND PROPERTY COMPILE_OPTIONS "/GS-;/Gs1048576")
+    target_compile_options(SDL3-shared PRIVATE "/GS-" "/Gs1048576")
     if(SDL_CPU_X86)
-      set_property(DIRECTORY . APPEND PROPERTY COMPILE_OPTIONS "/arch:SSE")
+      target_compile_options(SDL3-shared PRIVATE "/arch:SSE")
     endif()
   endif()
 
@@ -1793,7 +1781,7 @@ elseif(WINDOWS)
       if("$ENV{DXSDK_DIR}" STREQUAL "")
         message_error("DIRECTX requires the \$DXSDK_DIR environment variable to be set")
       endif()
-      set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} /I\"$ENV{DXSDK_DIR}\\Include\"")
+      string(APPEND CMAKE_REQUIRED_FLAGS " /I\"$ENV{DXSDK_DIR}\\Include\"")
     endif()
 
     check_include_file(d3d9.h HAVE_D3D_H)
@@ -1817,9 +1805,9 @@ elseif(WINDOWS)
     if(HAVE_D3D_H OR HAVE_D3D11_H OR HAVE_D3D12_H OR HAVE_DDRAW_H OR HAVE_DSOUND_H OR HAVE_DINPUT_H)
       set(HAVE_DIRECTX TRUE)
       if(NOT MINGW AND NOT USE_WINSDK_DIRECTX)
-      # TODO: change $ENV{DXSDL_DIR} to get the path from the include checks
-        target_link_directories(sdl-build-options INTERFACE "$$ENV{DXSDK_DIR}\\lib\\${PROCESSOR_ARCH}")
-        target_include_directories(sdl-build-options SYSTEM INTERFACE "$ENV{DXSDK_DIR}\\Include")
+        # TODO: change $ENV{DXSDL_DIR} to get the path from the include checks
+        sdl_link_directories("$<BUILD_INTERFACE:$$ENV{DXSDK_DIR}\\lib\\${PROCESSOR_ARCH}>")
+        sdl_include_directories(PRIVATE SYSTEM "$<BUILD_INTERFACE:$ENV{DXSDK_DIR}\\Include>")
       endif()
     endif()
   endif()
@@ -1960,15 +1948,17 @@ elseif(WINDOWS)
 
   # Libraries for Win32 native and MinGW
   if(NOT WINDOWS_STORE)
-    list(APPEND SDL_EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
+    sdl_add_dependency(base LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
   endif()
 
   if(WINDOWS_STORE)
-    list(APPEND SDL_EXTRA_LIBS
-      -nodefaultlib:vccorlib$<$<CONFIG:Debug>:d>
-      -nodefaultlib:msvcrt$<$<CONFIG:Debug>:d>
-      vccorlib$<$<CONFIG:Debug>:d>.lib
-      msvcrt$<$<CONFIG:Debug>:d>.lib
+    sdl_add_dependency(windows
+      LIBS
+        vccorlib$<$<CONFIG:Debug>:d>.lib
+        msvcrt$<$<CONFIG:Debug>:d>.lib
+      LINK_OPTIONS
+        -nodefaultlib:vccorlib$<$<CONFIG:Debug>:d>
+        -nodefaultlib:msvcrt$<$<CONFIG:Debug>:d>
     )
   endif()
 
@@ -2019,7 +2009,7 @@ elseif(WINDOWS)
     endif()
     if(HAVE_DINPUT_H)
       set(SDL_JOYSTICK_DINPUT 1)
-      list(APPEND SDL_EXTRA_LIBS dinput8)
+      sdl_add_dependency(joystick LIBS dinput8)
     endif()
     if(HAVE_XINPUT_H)
       if(NOT WINDOWS_STORE)
@@ -2051,7 +2041,7 @@ elseif(WINDOWS)
 
   sdl_glob_sources(SHARED ${SDL3_SOURCE_DIR}/src/core/windows/*.rc)
   if(MINGW OR CYGWIN)
-    list(APPEND SDL_PC_LIBS "-mwindows")
+    sdl_pc_link_options("-mwindows")
   endif()
 
 elseif(APPLE)
@@ -2255,71 +2245,71 @@ elseif(APPLE)
 
   # Actually load the frameworks at the end so we don't duplicate include.
   if(SDL_FRAMEWORK_COREVIDEO)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,CoreVideo")
+    sdl_add_dependency(corevideo LINK_OPTIONS "-Wl,-framework,CoreVideo")
   endif()
   if(SDL_FRAMEWORK_COCOA)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,Cocoa")
+    sdl_add_dependency(cocoa LINK_OPTIONS "-Wl,-framework,Cocoa")
   endif()
   if(SDL_FRAMEWORK_IOKIT)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,IOKit")
+    sdl_add_dependency(iokit LINK_OPTIONS "-Wl,-framework,IOKit")
   endif()
   if(SDL_FRAMEWORK_FF)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,ForceFeedback")
+    sdl_add_dependency(ff LINK_OPTIONS "-Wl,-framework,ForceFeedback")
   endif()
   if(SDL_FRAMEWORK_CARBON)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,Carbon")
+    sdl_add_dependency(carbon LINK_OPTIONS "-Wl,-framework,Carbon")
   endif()
   if(SDL_FRAMEWORK_COREAUDIO)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,CoreAudio")
+    sdl_add_dependency(core_audio LINK_OPTIONS "-Wl,-framework,CoreAudio")
   endif()
   if(SDL_FRAMEWORK_AUDIOTOOLBOX)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,AudioToolbox")
+    sdl_add_dependency(audio_toolbox LINK_OPTIONS "-Wl,-framework,AudioToolbox")
   endif()
   if(SDL_FRAMEWORK_AVFOUNDATION)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,AVFoundation")
+    sdl_add_dependency(av_foundation LINK_OPTIONS "-Wl,-framework,AVFoundation")
   endif()
   if(SDL_FRAMEWORK_COREBLUETOOTH)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,CoreBluetooth")
+    sdl_add_dependency(core_bluetooth LINK_OPTIONS "-Wl,-framework,CoreBluetooth")
   endif()
   if(SDL_FRAMEWORK_COREGRAPHICS)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,CoreGraphics")
+    sdl_add_dependency(core_graphics LINK_OPTIONS "-Wl,-framework,CoreGraphics")
   endif()
   if(SDL_FRAMEWORK_COREMOTION)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,CoreMotion")
+    sdl_add_dependency(core_motion LINK_OPTIONS "-Wl,-framework,CoreMotion")
   endif()
   if(SDL_FRAMEWORK_FOUNDATION)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,Foundation")
+    sdl_add_dependency(foundation LINK_OPTIONS "-Wl,-framework,Foundation")
   endif()
   if(SDL_FRAMEWORK_GAMECONTROLLER)
     find_library(GAMECONTROLLER GameController)
     if(GAMECONTROLLER)
-      list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-weak_framework,GameController")
+      sdl_add_dependency(game_controller LINK_OPTIONS "-Wl,-weak_framework,GameController")
     endif()
   endif()
   if(SDL_FRAMEWORK_METAL)
     if(IOS OR TVOS)
-      list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,Metal")
+      sdl_add_dependency(metal LINK_OPTIONS "-Wl,-framework,Metal")
     else()
-      list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-weak_framework,Metal")
+      sdl_add_dependency(metal LINK_OPTIONS "-Wl,-weak_framework,Metal")
     endif()
   endif()
   if(SDL_FRAMEWORK_OPENGLES)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,OpenGLES")
+    sdl_add_dependency(opengles LINK_OPTIONS "-Wl,-framework,OpenGLES")
   endif()
   if(SDL_FRAMEWORK_QUARTZCORE)
     if(IOS OR TVOS)
-      list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,QuartzCore")
+      sdl_add_dependency(quartz_core LINK_OPTIONS "-Wl,-framework,QuartzCore")
     else()
-      list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-weak_framework,QuartzCore")
+      sdl_add_dependency(metal LINK_OPTIONS "-Wl,-weak_framework,QuartzCore")
     endif()
   endif()
   if(SDL_FRAMEWORK_UIKIT)
-    list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-framework,UIKit")
+    sdl_add_dependency(ui_kit LINK_OPTIONS "-Wl,-framework,UIKit")
   endif()
   if(SDL_FRAMEWORK_COREHAPTICS)
     find_library(COREHAPTICS CoreHaptics)
     if(COREHAPTICS)
-      list(APPEND SDL_EXTRA_LDFLAGS "-Wl,-weak_framework,CoreHaptics")
+      sdl_add_dependency(core_haptics LINK_OPTIONS "-Wl,-framework,CoreHaptics")
     endif()
   endif()
 
@@ -2353,7 +2343,7 @@ elseif(HAIKU)
       set(SDL_VIDEO_OPENGL 1)
       set(SDL_VIDEO_OPENGL_HAIKU 1)
       set(SDL_VIDEO_RENDER_OGL 1)
-      list(APPEND SDL_EXTRA_LIBS GL)
+      sdl_add_dependency(opengl LIBS GL)
       set(HAVE_OPENGL TRUE)
     endif()
   endif()
@@ -2384,7 +2374,7 @@ elseif(HAIKU)
   sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/haiku/*.cc)
 
   CheckPTHREAD()
-  list(APPEND SDL_EXTRA_LIBS root be media game device textencoding)
+  sdl_add_dependency(base LIBS root be media game device textencoding)
 
 elseif(RISCOS)
   if(SDL_MISC)
@@ -2423,7 +2413,7 @@ elseif(RISCOS)
 elseif(VITA)
   # SDL_spinlock.c Needs to be compiled in ARM mode.
   cmake_push_check_state()
-  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Werror=unused-command-line-argument")
+  string(APPEND CMAKE_REQUIRED_FLAGS " -Werror=unused-command-line-argument")
   check_c_compiler_flag(-marm HAVE_ARM_MODE)
   cmake_pop_check_state()
   if(HAVE_ARM_MODE)
@@ -2491,11 +2481,12 @@ elseif(VITA)
 
       if(HAVE_PIGS_IN_BLANKET_H)
         set(SDL_VIDEO_OPENGL_ES2 1)
-        list(APPEND SDL_EXTRA_LIBS
-          pib
-          libScePiglet_stub_weak
-          taihen_stub_weak
-          SceShaccCg_stub_weak
+        sdl_add_dependency(pib
+          LIBS
+            pib
+            libScePiglet_stub_weak
+            taihen_stub_weak
+            SceShaccCg_stub_weak
         )
         set(HAVE_VIDEO_VITA_PIB ON)
         set(SDL_VIDEO_VITA_PIB 1)
@@ -2507,17 +2498,18 @@ elseif(VITA)
     if(VIDEO_VITA_PVR)
       check_include_file(gpu_es4/psp2_pvr_hint.h HAVE_PVR_H)
       if(HAVE_PVR_H)
-        target_compile_definitions(sdl-build-options INTERFACE "__psp2__")
+        sdl_compile_definitions(PRIVATE "__psp2__")
         set(SDL_VIDEO_OPENGL_EGL 1)
         set(HAVE_OPENGLES TRUE)
         set(SDL_VIDEO_OPENGL_ES 1)
         set(SDL_VIDEO_OPENGL_ES2 1)
         set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-        list(APPEND SDL_EXTRA_LIBS
-          libgpu_es4_ext_stub_weak
-          libIMGEGL_stub_weak
-          SceIme_stub
+        sdl_add_dependency(pvr
+          LIBS
+            libgpu_es4_ext_stub_weak
+            libIMGEGL_stub_weak
+            SceIme_stub
         )
 
         set(HAVE_VIDEO_VITA_PVR ON)
@@ -2529,7 +2521,7 @@ elseif(VITA)
             set(HAVE_OPENGL TRUE)
             set(SDL_VIDEO_OPENGL 1)
             set(SDL_VIDEO_RENDER_OGL 1)
-            list(APPEND SDL_EXTRA_LIBS libGL_stub)
+            sdl_add_dependency(opengl LIBS libGL_stub)
             set(SDL_VIDEO_VITA_PVR_OGL 1)
           endif()
         endif()
@@ -2540,30 +2532,30 @@ elseif(VITA)
     endif()
 
     set(SDL_VIDEO_RENDER_VITA_GXM 1)
-
-    list(APPEND SDL_EXTRA_LIBS
-      SceGxm_stub
-      SceDisplay_stub
-      SceCtrl_stub
-      SceAppMgr_stub
-      SceAppUtil_stub
-      SceAudio_stub
-      SceAudioIn_stub
-      SceSysmodule_stub
-      SceDisplay_stub
-      SceCtrl_stub
-      SceIofilemgr_stub
-      SceCommonDialog_stub
-      SceTouch_stub
-      SceHid_stub
-      SceMotion_stub
-      ScePower_stub
-      SceProcessmgr_stub
-      m
+    sdl_add_dependency(base
+      LIBS
+        SceGxm_stub
+        SceDisplay_stub
+        SceCtrl_stub
+        SceAppMgr_stub
+        SceAppUtil_stub
+        SceAudio_stub
+        SceAudioIn_stub
+        SceSysmodule_stub
+        SceDisplay_stub
+        SceCtrl_stub
+        SceIofilemgr_stub
+        SceCommonDialog_stub
+        SceTouch_stub
+        SceHid_stub
+        SceMotion_stub
+        ScePower_stub
+        SceProcessmgr_stub
+        m
     )
   endif()
 
-  target_compile_definitions(sdl-build-options INTERFACE "__VITA__")
+  sdl_compile_definitions(PRIVATE "__VITA__")
 
 elseif(PSP)
   sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/psp/*.c)
@@ -2609,8 +2601,8 @@ elseif(PSP)
     set(SDL_VIDEO_OPENGL 1)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
-
-  list(APPEND SDL_EXTRA_LIBS
+  sdl_add_dependency(base
+    LIBS
       GL
       pspvram
       pspaudio
@@ -2624,8 +2616,8 @@ elseif(PSP)
   )
 
 elseif(PS2)
-  target_compile_definitions(sdl-build-options INTERFACE "PS2" "__PS2__")
-  target_include_directories(sdl-build-options SYSTEM INTERFACE "$ENV{PS2SDK}/ports/include" "$ENV{PS2DEV}/gsKit/include")
+  sdl_compile_definitions(PRIVATE "PS2" "__PS2__")
+  sdl_include_directories(PRIVATE SYSTEM "$ENV{PS2SDK}/ports/include" "$ENV{PS2DEV}/gsKit/include")
 
   sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/ps2/*.c)
 
@@ -2671,13 +2663,13 @@ elseif(PS2)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
 
-  list(APPEND SDL_EXTRA_LIBS
-    patches
-    gskit
-    dmakit
-    ps2_drivers
+  sdl_add_dependency(base
+    LIBS
+      patches
+      gskit
+      dmakit
+      ps2_drivers
   )
-
 elseif(N3DS)
   sdl_glob_sources(${SDL3_SOURCE_DIR}/src/core/n3ds/*.c)
 
@@ -2745,13 +2737,6 @@ elseif(N3DS)
   else()
     message_error("SDL_FILE must be enabled to build on N3DS")
   endif()
-
-  foreach(lib ${CMAKE_C_STANDARD_LIBRARIES})
-    if(lib MATCHES "^-l")
-      string(SUBSTRING "${lib}" 2 -1 lib)
-    endif()
-    list(APPEND SDL_EXTRA_LIBS ${lib})
-  endforeach()
 endif()
 
 if(HAVE_VULKAN AND NOT SDL_LOADSO)
@@ -2819,7 +2804,7 @@ endif()
 # We always need to have threads and timers around
 if(NOT HAVE_SDL_THREADS)
   # The emscripten platform has been carefully vetted to work without threads
-  if (EMSCRIPTEN)
+  if(EMSCRIPTEN)
     set(SDL_THREADS_DISABLED 1)
     sdl_glob_sources(${SDL3_SOURCE_DIR}/src/thread/generic/*.c)
   else()
@@ -2858,12 +2843,6 @@ file(GENERATE
     INPUT "${SDL3_BINARY_DIR}/SDL_build_config.h.intermediate")
 
 # Prepare the flags and remove duplicates
-if(SDL_EXTRA_LDFLAGS)
-  list(REMOVE_DUPLICATES SDL_EXTRA_LDFLAGS)
-endif()
-if(SDL_EXTRA_LIBS)
-  list(REMOVE_DUPLICATES SDL_EXTRA_LIBS)
-endif()
 if(EXTRA_CFLAGS)
   list(REMOVE_DUPLICATES EXTRA_CFLAGS)
 endif()
@@ -2912,13 +2891,13 @@ endif()
 
 macro(check_add_debug_flag FLAG SUFFIX)
     check_c_compiler_flag(${FLAG} HAS_C_FLAG_${SUFFIX})
-    if (HAS_C_FLAG_${SUFFIX})
-        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${FLAG}")
+    if(HAS_C_FLAG_${SUFFIX})
+        string(APPEND CMAKE_C_FLAGS_DEBUG " ${FLAG}")
     endif()
 
     check_cxx_compiler_flag(${FLAG} HAS_CXX_${SUFFIX})
-    if (HAS_CXX_${SUFFIX})
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${FLAG}")
+    if(HAS_CXX_${SUFFIX})
+        string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${FLAG}")
     endif()
 endmacro()
 
@@ -2942,11 +2921,11 @@ macro(asan_check_add_debug_flag2 ASAN_FLAG)
     cmake_pop_check_state()
 
     if (HAS_C_FLAG_${ASAN_FLAG})
-        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${FLAG}")
+        string(APPEND CMAKE_C_FLAGS_DEBUG " ${FLAG}")
     endif()
 
     if (HAS_CXX_${ASAN_FLAG})
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${FLAG}")
+        string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${FLAG}")
     endif()
 
     if(HAS_C_${ASAN_FLAG} OR HAS_CXX_${ASAN_FLAG})
@@ -2970,7 +2949,7 @@ if(SDL_ASAN)
   asan_check_add_debug_flag("leak")
   # The object size sanitizer has no effect on unoptimized builds on Clang,
   # but causes warnings.
-  if((NOT USE_CLANG) OR ("${CMAKE_BUILD_TYPE}" STREQUAL ""))
+  if(NOT USE_CLANG OR CMAKE_BUILD_TYPE STREQUAL "")
     asan_check_add_debug_flag("object-size")
   endif()
 endif()
@@ -3003,7 +2982,7 @@ if(SDL_CLANG_TIDY)
     set(CMAKE_C_CLANG_TIDY ${CLANG_TIDY_COMMAND})
     set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_COMMAND})
     set(CMAKE_OBJC_CLANG_TIDY ${CLANG_TIDY_COMMAND})
-    get_property(shared_sources TARGET SDL3-shared PROPERTY INTERFACE_SOURCES)
+    get_property(shared_sources TARGET SDL3-collector PROPERTY INTERFACE_SOURCES)
     set_source_files_properties(${shared_sources} PROPERTIES SKIP_PRECOMPILE_HEADERS TRUE)
     file(GLOB STDLIB_SOURCES "${SDL3_SOURCE_DIR}/src/stdlib/*.c")
     set_property(SOURCE ${STDLIB_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS "SDL_DISABLE_ANALYZE_MACROS")
@@ -3016,29 +2995,10 @@ if(SDL_TESTS)
   set(HAVE_TESTS ON)
 endif()
 
-get_property(INFO_CFLAGS TARGET sdl-build-options PROPERTY INTERFACE_COMPILE_OPTIONS)
-list(REMOVE_DUPLICATES INFO_CFLAGS)
-listtostr(INFO_CFLAGS INFO_CFLAGS)
-
-get_property(INFO_INCDIRS TARGET sdl-build-options PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-list(REMOVE_DUPLICATES INFO_INCDIRS)
-listtostr(INFO_INCDIRS INFO_INCDIRS "-I")
-
-get_property(INFO_DEFS TARGET sdl-build-options PROPERTY INTERFACE_COMPILE_DEFINITIONS)
-list(REMOVE_DUPLICATES INFO_DEFS)
-listtostr(INFO_DEFS INFO_DEFS "-D")
-
 get_property(INFO_CHECKS TARGET sdl-global-options PROPERTY INTERFACE_COMPILE_OPTIONS)
 list(REMOVE_DUPLICATES INFO_CHECKS)
 listtostr(INFO_CHECKS INFO_CHECKS)
 
-listtostr(SDL_EXTRA_LDFLAGS INFO_EXTRA_LDFLAGS)
-
-get_property(INFO_SHARED_LDFLAGS TARGET sdl-shared-build-options PROPERTY INTERFACE_LINK_LIBRARIES)
-list(REMOVE_DUPLICATES INFO_SHARED_LDFLAGS)
-listtostr(INFO_SHARED_LDFLAGS INFO_SHARED_LDFLAGS)
-
-listtostr(SDL_EXTRA_LIBS INFO_EXTRA_LIBS)
 listtostr(SDL_CMAKE_DEPENDS INFO_CMAKE_DEPENDS)
 
 ##### Info output #####
@@ -3049,6 +3009,7 @@ message(STATUS "Platform: ${CMAKE_SYSTEM}")
 message(STATUS "64-bit:   ${ARCH_64}")
 message(STATUS "Compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "Revision: ${SDL_REVISION}")
+message(STATUS "Vendor:   ${SDL_VENDOR_INFO}")
 message(STATUS "")
 message(STATUS "Subsystems:")
 
@@ -3071,11 +3032,11 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   message(STATUS " CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
   message(STATUS "")
 endif()
-message(STATUS " EXTRA DEFS:    ${INFO_DEFS}")
-message(STATUS " EXTRA CFLAGS:  ${INFO_CFLAGS} ${INFO_CHECKS}")
-message(STATUS " EXTRA INCDIRS: ${INFO_INCDIRS}")
-message(STATUS " EXTRA LDFLAGS: ${INFO_SHARED_LDFLAGS} ${INFO_EXTRA_LDFLAGS}")
-message(STATUS " EXTRA LIBS:    ${INFO_EXTRA_LIBS} ${INFO_CMAKE_DEPENDS}")
+message(STATUS " EXTRA DEFS:    ")
+message(STATUS " EXTRA CFLAGS:  ${INFO_CHECKS}")
+message(STATUS " EXTRA INCDIRS: ")
+message(STATUS " EXTRA LDFLAGS: ")
+message(STATUS " EXTRA LIBS:    ${INFO_CMAKE_DEPENDS}")
 message(STATUS "")
 message(STATUS " Build Shared Library: ${SDL_SHARED}")
 message(STATUS " Build Static Library: ${SDL_STATIC}")
@@ -3112,19 +3073,19 @@ if(WARN_ABOUT_ARM_NEON_ASM_MIT)
 endif()
 
 if(ANDROID)
-  target_include_directories(sdl-build-options SYSTEM INTERFACE "${ANDROID_NDK}/sources/android/cpufeatures")
+  sdl_include_directories(PRIVATE SYSTEM "${ANDROID_NDK}/sources/android/cpufeatures")
 endif()
 
 if(APPLE)
-  target_compile_options(sdl-build-options INTERFACE "-fobjc-arc")
+  sdl_compile_options(PRIVATE "-fobjc-arc")
 endif()
 
 if(PS2)
-  target_compile_options(sdl-build-options INTERFACE "-Wno-error=declaration-after-statement")
+  sdl_compile_options(PRIVATE "-Wno-error=declaration-after-statement")
 endif()
 
 if(APPLE)
-  get_property(sources TARGET SDL3-shared PROPERTY INTERFACE_SOURCES)
+  get_property(sources TARGET SDL3-collector PROPERTY INTERFACE_SOURCES)
   foreach(SOURCE_FILE IN LISTS sources)
     get_filename_component(FILE_EXTENSION ${SOURCE_FILE} EXT)
     if(FILE_EXTENSION STREQUAL ".m")
@@ -3177,8 +3138,6 @@ else()
 endif()
 
 if(SDL_SHARED)
-  add_library(SDL3-shared SHARED ${SOURCE_FILES} ${VERSION_SOURCES})
-  add_library(SDL3::SDL3-shared ALIAS SDL3-shared)
   set_target_properties(SDL3-shared PROPERTIES
     OUTPUT_NAME "SDL3"
     POSITION_INDEPENDENT_CODE TRUE
@@ -3236,8 +3195,7 @@ if(SDL_SHARED)
     endif()
     set_property(TARGET SDL3-shared APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS " /NODEFAULTLIB")
   endif()
-  # FIXME: if CMAKE_VERSION >= 3.13, use target_link_options for SDL_EXTRA_LDFLAGS
-  target_link_libraries(SDL3-shared PRIVATE ${SDL_EXTRA_LIBS} ${SDL_EXTRA_LDFLAGS} ${SDL_CMAKE_DEPENDS})
+  target_link_libraries(SDL3-shared PRIVATE ${SDL_CMAKE_DEPENDS})
   target_include_directories(SDL3-shared
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
@@ -3245,8 +3203,6 @@ if(SDL_SHARED)
   )
   target_link_libraries(SDL3-shared PUBLIC $<TARGET_NAME:SDL3::Headers>)
   # This picks up all the compiler options and such we've accumulated up to here.
-  target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-build-options>)
-  target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-shared-build-options>)
   target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-global-options>)
   if(MINGW OR CYGWIN)
     if(NOT CMAKE_VERSION VERSION_LESS "3.13")
@@ -3266,8 +3222,6 @@ if(SDL_SHARED)
 endif()
 
 if(SDL_STATIC)
-  add_library(SDL3-static STATIC ${SOURCE_FILES})
-  add_library(SDL3::SDL3-static ALIAS SDL3-static)
   set_target_properties(SDL3-static PROPERTIES
     OUTPUT_NAME "${sdl_static_libname}"
     POSITION_INDEPENDENT_CODE "${SDL_STATIC_PIC}"
@@ -3285,7 +3239,7 @@ if(SDL_STATIC)
     endif()
   endif()
   target_compile_definitions(SDL3-static PRIVATE SDL_STATIC_LIB)
-  target_link_libraries(SDL3-static PRIVATE ${SDL_EXTRA_LIBS} ${SDL_EXTRA_LDFLAGS} ${SDL_CMAKE_DEPENDS})
+  target_link_libraries(SDL3-static PRIVATE ${SDL_CMAKE_DEPENDS})
   target_include_directories(SDL3-static
     PRIVATE
       "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
@@ -3293,7 +3247,6 @@ if(SDL_STATIC)
   )
   target_link_libraries(SDL3-static PUBLIC $<TARGET_NAME:SDL3::Headers>)
   # This picks up all the compiler options and such we've accumulated up to here.
-  target_link_libraries(SDL3-static PRIVATE $<${build_local_interface}:sdl-build-options>)
   target_link_libraries(SDL3-static PRIVATE $<${build_local_interface}:sdl-global-options>)
   # Use `Compatible Interface Properties` to:
   # - allow consumers to enforce a shared/static library
@@ -3307,10 +3260,11 @@ if(SDL_STATIC)
   endif()
 endif()
 
-target_compile_definitions(sdl-build-options INTERFACE
-  "SDL_BUILD_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}"
-  "SDL_BUILD_MINOR_VERSION=${PROJECT_VERSION_MINOR}"
-  "SDL_BUILD_MICRO_VERSION=${PROJECT_VERSION_PATCH}"
+sdl_compile_definitions(
+  PRIVATE
+    "SDL_BUILD_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}"
+    "SDL_BUILD_MINOR_VERSION=${PROJECT_VERSION_MINOR}"
+    "SDL_BUILD_MICRO_VERSION=${PROJECT_VERSION_PATCH}"
 )
 
 ##### Tests #####
@@ -3420,7 +3374,7 @@ else()
   endif()
 endif()
 
-configure_file("cmake/sdlfind.cmake" "sdlfind.cmake" COPYONLY)
+sdl_cmake_config_find_pkg_config_commands(SDL_FIND_PKG_CONFIG_COMMANDS)
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/SDL3Config.cmake.in SDL3Config.cmake
@@ -3434,40 +3388,7 @@ write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/SDL3ConfigVersion.
 if(NOT SDL_DISABLE_INSTALL)
 
   ##### sdl3.pc #####
-
-  # Clean up variables for sdl3.pc
-  if(SDL_SHARED)
-    set(PKGCONFIG_LIBS_PRIV "\nLibs.private:")
-  else()
-    set(PKGCONFIG_LIBS_PRIV "")
-  endif()
-
-  # Clean up the different lists
-  listtostr(SDL_EXTRA_LIBS EXTRA_LIBS_L "-l")
-  set(SDL_PC_STATIC_LIBS ${SDL_EXTRA_LDFLAGS} ${EXTRA_LIBS_L})
-  list(REMOVE_DUPLICATES SDL_PC_STATIC_LIBS)
-  listtostr(SDL_PC_STATIC_LIBS SDL_PC_STATIC_LIBS)
-  listtostr(SDL_PC_LIBS SDL_PC_LIBS)
-  listtostr(SDL_PC_CFLAGS SDL_PC_CFLAGS)
-  listtostr(SDL_PC_PRIVATE_REQUIRES SDL_PC_PRIVATE_REQUIRES)
-  string(REGEX REPLACE "-lSDL3( |$)" "-l${sdl_static_libname} " SDL_PC_STATIC_LIBS "${SDL_PC_STATIC_LIBS}")
-  if(NOT SDL_SHARED)
-    string(REGEX REPLACE "-lSDL3( |$)" "-l${sdl_static_libname} " SDL_PC_LIBS "${SDL_PC_LIBS}")
-  endif()
-
-  if(SDL_STATIC AND SDL_SHARED AND NOT sdl_static_libname STREQUAL "SDL3")
-    message(STATUS "\"pkg-config --static --libs sdl3\" will return invalid information")
-  endif()
-
-  file(RELATIVE_PATH SDL_PATH_PREFIX_RELATIVE_TO_PKGCONFIG "${CMAKE_INSTALL_PREFIX}/${SDL_PKGCONFIG_INSTALLDIR}" "${CMAKE_INSTALL_PREFIX}")
-  string(REGEX REPLACE "[/]+$" "" SDL_PATH_PREFIX_RELATIVE_TO_PKGCONFIG "${SDL_PATH_PREFIX_RELATIVE_TO_PKGCONFIG}")
-  set(SDL_PKGCONFIG_PREFIX "\${pcfiledir}/${SDL_PATH_PREFIX_RELATIVE_TO_PKGCONFIG}")
-
-  # message(STATUS "SDL_PC_CFLAGS:   ${SDL_PC_CFLAGS}")
-  # message(STATUS "SDL_PC_LIBS:     ${SDL_PC_LIBS}")
-  # message(STATUS "SDL_PC_STATIC_LIBS: ${SDL_PC_STATIC_LIBS}")
-
-  configure_file(cmake/sdl3.pc.in sdl3.pc @ONLY)
+  configure_sdl3_pc()
   if(NOT SDL_FRAMEWORK)
     install(FILES ${SDL3_BINARY_DIR}/sdl3.pc DESTINATION "${SDL_PKGCONFIG_INSTALLDIR}")
   endif()
@@ -3535,10 +3456,18 @@ if(NOT SDL_DISABLE_INSTALL)
     )
   endif()
 
+  # FIXME: optionally install modules?
   install(FILES
       ${CMAKE_CURRENT_BINARY_DIR}/SDL3Config.cmake
       ${CMAKE_CURRENT_BINARY_DIR}/SDL3ConfigVersion.cmake
-      ${SDL3_SOURCE_DIR}/cmake/sdlfind.cmake
+      ${SDL3_SOURCE_DIR}/cmake/PkgConfigHelper.cmake
+      ${SDL3_SOURCE_DIR}/cmake/FindJack.cmake
+      ${SDL3_SOURCE_DIR}/cmake/FindLibDecor.cmake
+      ${SDL3_SOURCE_DIR}/cmake/FindLibInotify.cmake
+      ${SDL3_SOURCE_DIR}/cmake/FindLibUSB.cmake
+      ${SDL3_SOURCE_DIR}/cmake/FindPipeWire.cmake
+      ${SDL3_SOURCE_DIR}/cmake/FindPulseAudio.cmake
+      ${SDL3_SOURCE_DIR}/cmake/FindSndIO.cmake
     DESTINATION "${SDL_SDL_INSTALL_REAL_CMAKEDIR}"
   )
 
@@ -3617,11 +3546,7 @@ if(SDL_TESTS)
 endif()
 
 ##### Fix Objective C builds #####
-set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} ${CMAKE_C_FLAGS}")
+string(APPEND CMAKE_OBJC_FLAGS " ${CMAKE_C_FLAGS}")
 
-# Make sure SDL3::SDL3 always exists
-if(TARGET SDL3::SDL3-shared)
-  add_library(SDL3::SDL3 ALIAS SDL3-shared)
-else()
-  add_library(SDL3::SDL3 ALIAS SDL3-static)
-endif()
+debug_show_sdl_deps()
+
