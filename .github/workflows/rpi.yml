@@ -1,0 +1,68 @@
+name: Build (Raspberry PI)
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install ninja-build pkg-config gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+    - name: Download Raspberry Pi firmware
+      uses: actions/checkout@v3
+      with:
+        repository: raspberrypi/firmware
+        path: rpi-firmware
+    - name: Setup Raspberry firmware
+      run: |
+        sudo cp -r rpi-firmware/* /
+        echo PKG_CONFIG_PATH=/opt/vc/lib/pkgconfig >> $GITHUB_ENV
+    - uses: actions/checkout@v3
+    - name: Configure (CMake)
+      run: |
+        cmake -S . -B build -G Ninja \
+          -Wdeprecated -Wdev -Werror \
+          -DCMAKE_TOOLCHAIN_FILE=$PWD/build-scripts/cmake-toolchain-rpi-arm.cmake \
+          -DSDL_SHARED=ON \
+          -DSDL_STATIC=ON \
+          -DSDL_TESTS=ON \
+          -DSDL_INSTALL_TESTS=ON \
+          -DSDL_VENDOR_INFO="Github Workflow" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/prefix_cmake
+    - name: Build (CMake)
+      run: cmake --build build --verbose
+    - name: Install (CMake)
+      run: |
+        echo "SDL3_DIR=${{ github.workspace }}/prefix_cmake" >> $GITHUB_ENV
+        cmake --install build/
+        ( cd ${{ github.workspace }}/prefix_cmake; find ) | LC_ALL=C sort -u
+    - name: Package (CPack)
+      run: |
+        cmake --build build/ --config Release --target package
+    - name: Verify CMake configuration files
+      run: |
+        cmake -S cmake/test -B cmake_config_build -G Ninja \
+          -DCMAKE_TOOLCHAIN_FILE=$PWD/build-scripts/cmake-toolchain-rpi-arm.cmake \
+          -DCMAKE_PREFIX_PATH=${{ env.SDL3_DIR }} \
+          -DCMAKE_BUILD_TYPE=Release
+        cmake --build cmake_config_build --verbose
+    - name: Verify sdl3.pc
+      run: |
+        export CC=arm-linux-gnueabihf-gcc
+        export CFLAGS=-isystem/opt/vc/include
+        export LDFLAGS="-L/opt/vc/lib -Wl,-rpath,/opt/vc/lib"
+        export PKG_CONFIG_PATH=${{ env.SDL3_DIR }}/lib/pkgconfig:$PKG_CONFIG_PATH
+        cmake/test/test_pkgconfig.sh
+    - uses: actions/upload-artifact@v3
+      with:
+        if-no-files-found: error
+        name: SDL-rpi-arm
+        path: build/dist/SDL3*
