@@ -8,22 +8,14 @@ concurrency:
 
 jobs:
   Build:
-    name: ${{ matrix.platform.name }}
     runs-on: ubuntu-latest
     container: riscosdotinfo/riscos-gccsdk-4.7:latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - { name: CMake }
 
     steps:
     - name: Setup dependencies
       run: apt-get update && apt-get install -y cmake ninja-build
     - uses: actions/checkout@v3
     - name: Configure (CMake)
-      if: ${{ contains(matrix.platform.name, 'CMake') }}
       run: |
         cmake -S . -B build -G Ninja \
           -Wdeprecated -Wdev -Werror \
@@ -36,10 +28,8 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/prefix_cmake
     - name: Build (CMake)
-      if: ${{ contains(matrix.platform.name, 'CMake') }}
       run: cmake --build build --verbose
     - name: Install (CMake)
-      if: ${{ contains(matrix.platform.name, 'CMake') }}
       run: |
         echo "SDL3_DIR=${{ github.workspace }}/prefix_cmake" >> $GITHUB_ENV
         cmake --install build/
@@ -53,8 +43,7 @@ jobs:
           -DTEST_SHARED=OFF \
           -DCMAKE_TOOLCHAIN_FILE=/home/riscos/env/toolchain-riscos.cmake \
           -DCMAKE_PREFIX_PATH=${{ env.SDL3_DIR }} \
-          -DCMAKE_BUILD_TYPE=Release \
-          ${{ matrix.platform.test_args }}
+          -DCMAKE_BUILD_TYPE=Release
         cmake --build cmake_config_build --verbose
     - uses: actions/upload-artifact@v3
       with:
