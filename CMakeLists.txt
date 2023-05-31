@@ -50,6 +50,7 @@ include(${SDL3_SOURCE_DIR}/cmake/macros.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdlchecks.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdlplatform.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/sdltargets.cmake)
+include(${SDL3_SOURCE_DIR}/cmake/sdlcompilers.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/CheckCPUArchitecture.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/GetGitRevisionDescription.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/3rdparty.cmake)
@@ -59,6 +60,9 @@ if(CMAKE_VERSION VERSION_LESS "3.26")
 else()
   set(build_local_interface "BUILD_LOCAL_INTERFACE")
 endif()
+
+SDL_DetectCompiler()
+SDL_DetectCPUArchitecture()
 
 # Increment this if there is an incompatible change - but if that happens,
 # we should rename the library from SDL3 to SDL4, at which point this would
@@ -79,13 +83,13 @@ else()
   math(EXPR SDL_DYLIB_CURRENT_VERSION_MAJOR "${SDL_DYLIB_COMPAT_VERSION_MAJOR}")
   set(SDL_DYLIB_CURRENT_VERSION_MINOR "0")
 endif()
-set(SDL_DYLIB_COMPAT_VERSION_PATCH "0")
+set(SDL_DYLIB_CURRENT_VERSION_PATCH "0")
 set(SDL_DYLIB_COMPAT_VERSION_PATCH "0")
 
-set(SDL_DYLIB_CURRENT_VERSION "${SDL_DYLIB_CURRENT_VERSION_MAJOR}.${SDL_DYLIB_CURRENT_VERSION_MINOR}.${SDL_DYLIB_COMPAT_VERSION_PATCH}")
+set(SDL_DYLIB_CURRENT_VERSION "${SDL_DYLIB_CURRENT_VERSION_MAJOR}.${SDL_DYLIB_CURRENT_VERSION_MINOR}.${SDL_DYLIB_CURRENT_VERSION_PATCH}")
 set(SDL_DYLIB_COMPAT_VERSION "${SDL_DYLIB_COMPAT_VERSION_MAJOR}.${SDL_DYLIB_COMPAT_VERSION_MINOR}.${SDL_DYLIB_COMPAT_VERSION_PATCH}")
 
-#message("SDL_SO_VERSION=${SDL_SO_VERSION} SDL_DYLIB_CURRENT_VERSION=${SDL_DYLIB_CURRENT_VERSION} SDL_DYLIB_COMPAT_VERSION=${SDL_DYLIB_COMPAT_VERSION}")
+message(DEBUG "SDL_SO_VERSION=${SDL_SO_VERSION} SDL_DYLIB_CURRENT_VERSION=${SDL_DYLIB_CURRENT_VERSION} SDL_DYLIB_COMPAT_VERSION=${SDL_DYLIB_COMPAT_VERSION}")
 
 set(SDL_FRAMEWORK_VERSION "A")
 
@@ -121,15 +125,15 @@ endif()
 #  commonly supported in browsers or the Emscripten teams makes a single
 #  binary work everywhere.
 if (UNIX_OR_MAC_SYS AND NOT EMSCRIPTEN)
-  set(SDL_PTHREADS_ENABLED_BY_DEFAULT ON)
+  set(SDL_PTHREADS_DEFAULT ON)
 else()
-  set(SDL_PTHREADS_ENABLED_BY_DEFAULT OFF)
+  set(SDL_PTHREADS_DEFAULT OFF)
 endif()
 
 if(UNIX_SYS OR ANDROID)
-  set(SDL_CLOCK_GETTIME_ENABLED_BY_DEFAULT ON)
+  set(SDL_CLOCK_GETTIME_DEFAULT ON)
 else()
-  set(SDL_CLOCK_GETTIME_ENABLED_BY_DEFAULT OFF)
+  set(SDL_CLOCK_GETTIME_DEFAULT OFF)
 endif()
 
 # The hidraw support doesn't catch Xbox, PS4 and Nintendo controllers,
@@ -150,31 +154,14 @@ else()
   set(SDL_HIDAPI_LIBUSB_DEFAULT FALSE)
 endif()
 
-# Compiler info
-if(CMAKE_C_COMPILER_ID MATCHES "Clang|IntelLLVM")
-  set(USE_CLANG TRUE)
-  set(SDL_ASSEMBLY_DEFAULT TRUE)
-  # Visual Studio 2019 v16.2 added support for Clang/LLVM.
-  # Check if a Visual Studio project is being generated with the Clang toolset.
-  if(MSVC)
-    set(MSVC_CLANG TRUE)
-  endif()
-elseif(CMAKE_COMPILER_IS_GNUCC)
-  set(USE_GCC TRUE)
-  set(SDL_ASSEMBLY_DEFAULT TRUE)
-elseif(MSVC_VERSION GREATER 1400) # VisualStudio 8.0+
-  set(SDL_ASSEMBLY_DEFAULT TRUE)
-elseif(CMAKE_C_COMPILER_ID MATCHES "^Intel$")
-  set(SDL_ASSEMBLY_DEFAULT TRUE)
-  set(USE_INTELCC TRUE)
-elseif(CMAKE_C_COMPILER_ID MATCHES "QCC")
-  set(USE_QCC TRUE)
-else()
-  set(SDL_ASSEMBLY_DEFAULT FALSE)
+set(SDL_ASSEMBLY_DEFAULT OFF)
+if(USE_CLANG OR USE_GCC OR USE_INTELCC OR MSVC_VERSION GREATER 1400)
+  set(SDL_ASSEMBLY_DEFAULT OFF)
 endif()
 
+set(SDL_GCC_ATOMICS_DEFAULT OFF)
 if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
-  set(OPT_DEF_GCC_ATOMICS ON)
+  set(SDL_GCC_ATOMICS_DEFAULT ON)
 endif()
 
 # Default option knobs
@@ -221,26 +208,26 @@ set(SDL_STATIC_DEFAULT ON)
 
 set(SDL_SHARED_AVAILABLE ON)
 
-# All these ENABLED_BY_DEFAULT vars will default to ON if not specified, so
-#  you only need to have a platform override them if they are disabling.
+# All these *_DEFAULT vars will default to ON if not specified,
+# so you only need to override them if they need to be disabled.
 if(EMSCRIPTEN)
   # Set up default values for the currently supported set of subsystems:
   # Emscripten/Javascript does not have assembly support, a dynamic library
   # loading architecture, or low-level CPU inspection.
 
-  # SDL_THREADS_ENABLED_BY_DEFAULT now defaults to ON, but pthread support might be disabled by default.
+  # SDL_THREADS_DEFAULT now defaults to ON, but pthread support might be disabled by default.
   # !!! FIXME: most of these subsystems should default to ON if there are dummy implementations to be used.
 
-  set(SDL_ASSEMBLY_DEFAULT FALSE)
+  set(SDL_ASSEMBLY_DEFAULT OFF)
   set(SDL_SHARED_AVAILABLE OFF)
-  set(SDL_ATOMIC_ENABLED_BY_DEFAULT OFF)
-  set(SDL_LOADSO_ENABLED_BY_DEFAULT OFF)
-  set(SDL_CPUINFO_ENABLED_BY_DEFAULT OFF)
+  set(SDL_ATOMIC_DEFAULT OFF)
+  set(SDL_LOADSO_DEFAULT OFF)
+  set(SDL_CPUINFO_DEFAULT OFF)
 endif()
 
 if(VITA OR PSP OR PS2 OR N3DS OR RISCOS)
   set(SDL_SHARED_AVAILABLE OFF)
-  set(SDL_LOADSO_ENABLED_BY_DEFAULT OFF)
+  set(SDL_LOADSO_DEFAULT OFF)
 endif()
 
 if(SDL_SHARED_DEFAULT AND SDL_STATIC_DEFAULT AND SDL_SHARED_AVAILABLE)
@@ -257,17 +244,32 @@ if(SDL_SHARED_DEFAULT AND SDL_STATIC_DEFAULT AND SDL_SHARED_AVAILABLE)
   endif()
 endif()
 
-set(LONGESTOPTIONNAME 0)  # set_option and friends will change this.
-
 set(SDL_SUBSYSTEMS
-    Atomic Audio Video Render Events Joystick Haptic Hidapi Power Threads Timers
-    File Loadso CPUinfo Filesystem Sensor Locale Misc)
-foreach(_SUB ${SDL_SUBSYSTEMS})
+  Atomic
+  Audio
+  Video
+  Render
+  Events
+  Joystick
+  Haptic
+  Hidapi
+  Power
+  Threads
+  Timers
+  File
+  Loadso
+  CPUinfo
+  Filesystem
+  Sensor
+  Locale
+  Misc
+)
+foreach(_SUB IN LISTS SDL_SUBSYSTEMS)
   string(TOUPPER ${_SUB} _OPT)
-  if (NOT DEFINED SDL_${_OPT}_ENABLED_BY_DEFAULT)
-    set(SDL_${_OPT}_ENABLED_BY_DEFAULT ON)
+  if(NOT DEFINED SDL_${_OPT}_DEFAULT)
+    set(SDL_${_OPT}_DEFAULT ON)
   endif()
-  option(SDL_${_OPT} "Enable the ${_SUB} subsystem" ${SDL_${_OPT}_ENABLED_BY_DEFAULT})
+  option(SDL_${_OPT} "Enable the ${_SUB} subsystem" ${SDL_${_OPT}_DEFAULT})
 endforeach()
 
 # Allow some projects to be built conditionally.
@@ -277,7 +279,6 @@ cmake_dependent_option(SDL_DISABLE_INSTALL_MAN "Install man pages for SDL3" ${SD
 set_option(SDL_DISABLE_UNINSTALL  "Disable uninstallation of SDL3" OFF)
 
 option_string(SDL_ASSERTIONS "Enable internal sanity checks (auto/disabled/release/enabled/paranoid)" "auto")
-#set_option(SDL_DEPENDENCY_TRACKING "Use gcc -MMD -MT dependency tracking" ON)
 set_option(SDL_ASSEMBLY            "Enable assembly routines" ${SDL_ASSEMBLY_DEFAULT})
 dep_option(SDL_AVX                 "Use AVX assembly routines" ON "SDL_ASSEMBLY;SDL_CPU_X86 OR SDL_CPU_X64" OFF)
 dep_option(SDL_AVX2                "Use AVX2 assembly routines" ON "SDL_ASSEMBLY;SDL_CPU_X86 OR SDL_CPU_X64" OFF)
@@ -297,7 +298,7 @@ dep_option(SDL_LASX                "Use LASX assembly routines" ON "SDL_ASSEMBLY
 
 set_option(SDL_LIBC                "Use the system C library" ${SDL_LIBC_DEFAULT})
 set_option(SDL_SYSTEM_ICONV        "Use iconv() from system-installed libraries" ${SDL_SYSTEM_ICONV_DEFAULT})
-set_option(SDL_GCC_ATOMICS         "Use gcc builtin atomics" ${OPT_DEF_GCC_ATOMICS})
+set_option(SDL_GCC_ATOMICS         "Use gcc builtin atomics" ${SDL_GCC_ATOMICS_DEFAULT})
 dep_option(SDL_DBUS                "Enable D-Bus support" ON ${UNIX_SYS} OFF)
 set_option(SDL_DISKAUDIO           "Support the disk writer audio driver" ON)
 set_option(SDL_DUMMYAUDIO          "Support the dummy audio driver" ON)
@@ -305,7 +306,7 @@ set_option(SDL_DUMMYVIDEO          "Use dummy video driver" ON)
 dep_option(SDL_IBUS                "Enable IBus support" ON ${UNIX_SYS} OFF)
 set_option(SDL_OPENGL              "Include OpenGL support" ON)
 set_option(SDL_OPENGLES            "Include OpenGL ES support" ON)
-set_option(SDL_PTHREADS            "Use POSIX threads for multi-threading" ${SDL_PTHREADS_ENABLED_BY_DEFAULT})
+set_option(SDL_PTHREADS            "Use POSIX threads for multi-threading" ${SDL_PTHREADS_DEFAULT})
 dep_option(SDL_PTHREADS_SEM        "Use pthread semaphores" ON "SDL_PTHREADS" OFF)
 dep_option(SDL_OSS                 "Support the OSS audio API" ON "UNIX_SYS OR RISCOS" OFF)
 set_option(SDL_ALSA                "Support the ALSA audio API" ${UNIX_SYS})
@@ -319,7 +320,7 @@ dep_option(SDL_PULSEAUDIO_SHARED   "Dynamically load PulseAudio support" ON "SDL
 set_option(SDL_SNDIO               "Support the sndio audio API" ${UNIX_SYS})
 dep_option(SDL_SNDIO_SHARED        "Dynamically load the sndio audio API" ON "SDL_SNDIO" OFF)
 set_option(SDL_RPATH               "Use an rpath when linking SDL" ${UNIX_SYS})
-set_option(SDL_CLOCK_GETTIME       "Use clock_gettime() instead of gettimeofday()" ${SDL_CLOCK_GETTIME_ENABLED_BY_DEFAULT})
+set_option(SDL_CLOCK_GETTIME       "Use clock_gettime() instead of gettimeofday()" ${SDL_CLOCK_GETTIME_DEFAULT})
 set_option(SDL_X11                 "Use X11 video driver" ${UNIX_SYS})
 dep_option(SDL_X11_SHARED          "Dynamically load X11 support" ON "SDL_X11" OFF)
 set(SDL_X11_OPTIONS Xcursor Xdbe XInput Xfixes Xrandr Xscrnsaver XShape)
@@ -1805,7 +1806,11 @@ elseif(WINDOWS)
     if(HAVE_D3D_H OR HAVE_D3D11_H OR HAVE_D3D12_H OR HAVE_DDRAW_H OR HAVE_DSOUND_H OR HAVE_DINPUT_H)
       set(HAVE_DIRECTX TRUE)
       if(NOT MINGW AND NOT USE_WINSDK_DIRECTX)
-        # TODO: change $ENV{DXSDL_DIR} to get the path from the include checks
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+          set(PROCESSOR_ARCH "x64")
+        else()
+          set(PROCESSOR_ARCH "x86")
+        endif()
         sdl_link_directories("$<BUILD_INTERFACE:$$ENV{DXSDK_DIR}\\lib\\${PROCESSOR_ARCH}>")
         sdl_include_directories(PRIVATE SYSTEM "$<BUILD_INTERFACE:$ENV{DXSDK_DIR}\\Include>")
       endif()
@@ -3000,6 +3005,12 @@ list(REMOVE_DUPLICATES INFO_CHECKS)
 listtostr(INFO_CHECKS INFO_CHECKS)
 
 listtostr(SDL_CMAKE_DEPENDS INFO_CMAKE_DEPENDS)
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(ARCH_64 TRUE)
+else()
+  set(ARCH_64 FALSE)
+endif()
 
 ##### Info output #####
 message(STATUS "")

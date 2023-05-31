@@ -1,9 +1,5 @@
 macro(add_to_alloptions _NEWNAME)
   list(APPEND ALLOPTIONS ${_NEWNAME})
-  string(LENGTH ${_NEWNAME} _SLEN)
-  if(${LONGESTOPTIONNAME} LESS ${_SLEN})
-    set(LONGESTOPTIONNAME ${_SLEN})
-  endif()
 endmacro()
 
 macro(set_option _NAME _DESC)
