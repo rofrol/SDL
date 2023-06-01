@@ -1153,6 +1153,7 @@ if(SDL_LIBC)
   if(NOT WINDOWS)
     check_include_file(linux/input.h HAVE_LINUX_INPUT_H)
 
+    check_symbol_exists(getpagesize "unistd.h" HAVE_GETPAGESIZE)
     check_symbol_exists(sigaction "signal.h" HAVE_SIGACTION)
     check_symbol_exists(setjmp "setjmp.h" HAVE_SETJMP)
     check_symbol_exists(nanosleep "time.h" HAVE_NANOSLEEP)
