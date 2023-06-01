@@ -531,9 +531,11 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
     target_compile_options(sdl-global-options INTERFACE "/W3")
   elseif(HAVE_GCC_WALL)
     target_compile_options(sdl-global-options INTERFACE "-Wall")
-    if(HAIKU)
-      target_compile_options(sdl-global-options INTERFACE "-Wno-multichar")
-    endif()
+  endif()
+
+  check_c_compiler_flag(-Wundef HAVE_GCC_WNO_MULTICHAR)
+  if(HAVE_GCC_WNO_MULTICHAR)
+    target_compile_options(sdl-global-options INTERFACE "-Wno-multichar")
   endif()
 
   check_c_compiler_flag(-Wundef HAVE_GCC_WUNDEF)
@@ -543,7 +545,7 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
 
   check_c_compiler_flag(-fno-strict-aliasing HAVE_GCC_NO_STRICT_ALIASING)
   if(HAVE_GCC_NO_STRICT_ALIASING)
-    target_compile_options(sdl-global-options INTERFACE "-fno-strict-aliasing")
+    sdl_compile_options(PRIVATE "-fno-strict-aliasing")
   endif()
 
   check_c_compiler_flag(-Wdocumentation HAVE_GCC_WDOCUMENTATION)
