@@ -1132,26 +1132,18 @@ if(SDL_LIBC)
     check_symbol_exists(poll "poll.h" HAVE_POLL)
 
     check_library_exists(m pow "" HAVE_LIBM)
+    cmake_push_check_state()
     if(HAVE_LIBM)
-      cmake_push_check_state()
+      sdl_add_dependency(math LIBS m)
       list(APPEND CMAKE_REQUIRED_LIBRARIES m)
     endif()
-    foreach(_FN
-              atan atan2 atanf atan2f ceil ceilf copysign copysignf cos cosf
-              exp expf fabs fabsf floor floorf fmod fmodf log logf log10 log10f
-              lround lroundf pow powf round roundf scalbn scalbnf sin sinf sqrt
-              sqrtf tan tanf acos acosf asin asinf trunc truncf)
-        string(TOUPPER ${_FN} _UPPER)
-        set(LIBC_HASVAR "LIBC_HAS_${_UPPER}")
-        check_symbol_exists("${_FN}" "math.h" ${LIBC_HASVAR})
-        set(HAVE_${_UPPER} ${${LIBC_HASVAR}})
+    foreach(_FN atan atan2 atanf atan2f ceil ceilf copysign copysignf cos cosf exp expf fabs fabsf floor floorf fmod fmodf log logf log10 log10f lround lroundf pow powf round roundf scalbn scalbnf sin sinf sqrt sqrtf tan tanf acos acosf asin asinf trunc truncf)
+      string(TOUPPER ${_FN} _UPPER)
+      set(LIBC_HASVAR "LIBC_HAS_${_UPPER}")
+      check_symbol_exists("${_FN}" "math.h" ${LIBC_HASVAR})
+      set(HAVE_${_UPPER} ${${LIBC_HASVAR}})
     endforeach()
-    if(HAVE_LIBM)
-      cmake_pop_check_state()
-      if(NOT VITA)
-        sdl_add_dependency(math LIBS m)
-      endif()
-    endif()
+    cmake_pop_check_state()
 
     if(SDL_SYSTEM_ICONV)
       check_library_exists(iconv iconv_open "" HAVE_LIBICONV)
@@ -2556,7 +2548,6 @@ elseif(VITA)
         SceMotion_stub
         ScePower_stub
         SceProcessmgr_stub
-        m
     )
   endif()
 
