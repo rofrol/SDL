@@ -1153,12 +1153,6 @@ if(SDL_LIBC)
   if(NOT WINDOWS)
     check_include_file(linux/input.h HAVE_LINUX_INPUT_H)
 
-    # TODO: refine the mprotect check
-    # FIXME: remove HAVE_MPROTECT everywhere (it is not used)
-    check_c_source_compiles("#include <sys/types.h>
-                             #include <sys/mman.h>
-                             int main(void) { return 0; }" HAVE_MPROTECT)
-
     check_symbol_exists(sigaction "signal.h" HAVE_SIGACTION)
     check_symbol_exists(setjmp "setjmp.h" HAVE_SETJMP)
     check_symbol_exists(nanosleep "time.h" HAVE_NANOSLEEP)
