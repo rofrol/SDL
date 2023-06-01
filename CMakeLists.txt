@@ -523,63 +523,6 @@ endif()
 
 # Compiler option evaluation
 if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
-  # Check for -Wall first, so later things can override pieces of it.
-  # Note: clang-cl treats -Wall as -Weverything (which is very loud),
-  #       /W3 as -Wall, and /W4 as -Wall -Wextra.  So: /W3 is enough.
-  check_c_compiler_flag(-Wall HAVE_GCC_WALL)
-  if(MSVC_CLANG)
-    target_compile_options(sdl-global-options INTERFACE "/W3")
-  elseif(HAVE_GCC_WALL)
-    target_compile_options(sdl-global-options INTERFACE "-Wall")
-  endif()
-
-  check_c_compiler_flag(-Wundef HAVE_GCC_WNO_MULTICHAR)
-  if(HAVE_GCC_WNO_MULTICHAR)
-    target_compile_options(sdl-global-options INTERFACE "-Wno-multichar")
-  endif()
-
-  check_c_compiler_flag(-Wundef HAVE_GCC_WUNDEF)
-  if(HAVE_GCC_WUNDEF)
-    target_compile_options(sdl-global-options INTERFACE "-Wundef")
-  endif()
-
-  check_c_compiler_flag(-fno-strict-aliasing HAVE_GCC_NO_STRICT_ALIASING)
-  if(HAVE_GCC_NO_STRICT_ALIASING)
-    sdl_compile_options(PRIVATE "-fno-strict-aliasing")
-  endif()
-
-  check_c_compiler_flag(-Wdocumentation HAVE_GCC_WDOCUMENTATION)
-  if(HAVE_GCC_WDOCUMENTATION)
-    if(SDL_WERROR)
-      check_c_compiler_flag(-Werror=documentation HAVE_GCC_WERROR_DOCUMENTATION)
-      if(HAVE_GCC_WERROR_DOCUMENTATION)
-        target_compile_options(sdl-global-options INTERFACE "-Werror=documentation")
-      endif()
-    endif()
-    target_compile_options(sdl-global-options INTERFACE "-Wdocumentation")
-  endif()
-
-  check_c_compiler_flag(-Wdocumentation-unknown-command HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND)
-  if(HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND)
-    if(SDL_WERROR)
-      check_c_compiler_flag(-Werror=documentation-unknown-command HAVE_GCC_WERROR_DOCUMENTATION_UNKNOWN_COMMAND)
-      if(HAVE_GCC_WERROR_DOCUMENTATION_UNKNOWN_COMMAND)
-        target_compile_options(sdl-global-options INTERFACE "-Werror=documentation-unknown-command")
-      endif()
-    endif()
-    target_compile_options(sdl-global-options INTERFACE "-Wdocumentation-unknown-command")
-  endif()
-
-  check_c_compiler_flag(-fcomment-block-commands=threadsafety HAVE_GCC_COMMENT_BLOCK_COMMANDS)
-  if(HAVE_GCC_COMMENT_BLOCK_COMMANDS)
-    target_compile_options(sdl-global-options INTERFACE "-fcomment-block-commands=threadsafety")
-  else()
-    check_c_compiler_flag(/clang:-fcomment-block-commands=threadsafety HAVE_CLANG_COMMENT_BLOCK_COMMANDS)
-    if(HAVE_CLANG_COMMENT_BLOCK_COMMANDS)
-      target_compile_options(sdl-global-options INTERFACE "/clang:-fcomment-block-commands=threadsafety")
-    endif()
-  endif()
-
   if(SDL_GCC_ATOMICS)
     check_c_source_compiles("int main(int argc, char **argv) {
         int a;
@@ -614,34 +557,6 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
       int main(void) { return 0; }" HAVE_GCC_FVISIBILITY)
   cmake_pop_check_state()
 
-  check_c_compiler_flag(-Wshadow HAVE_GCC_WSHADOW)
-  if(HAVE_GCC_WSHADOW)
-    target_compile_options(sdl-global-options INTERFACE "-Wshadow")
-  endif()
-
-  check_c_compiler_flag(-Wunused-local-typedefs HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS)
-  if(HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS)
-    target_compile_options(sdl-global-options INTERFACE "-Wno-unused-local-typedefs")
-  endif()
-
-  if(APPLE)
-    cmake_push_check_state()
-    # FIXME: don't use deprecated declarations
-    check_c_compiler_flag(-Wno-error=deprecated-declarations HAVE_WNO_ERROR_DEPRECATED_DECLARATIONS)
-    if(HAVE_WNO_ERROR_DEPRECATED_DECLARATIONS)
-      sdl_compile_options(PRIVATE "-Wno-error=deprecated-declarations")
-    endif()
-    cmake_pop_check_state()
-  elseif(NOT OPENBSD)
-    cmake_push_check_state()
-    string(APPEND CMAKE_REQUIRED_FLAGS " -Wl,--no-undefined")
-    check_c_compiler_flag("" HAVE_NO_UNDEFINED)
-    cmake_pop_check_state()
-    if(HAVE_NO_UNDEFINED AND NOT (USE_CLANG AND WINDOWS))
-      sdl_shared_link_options("-Wl,--no-undefined")
-    endif()
-  endif()
-
   if(MINGW)
     # See if GCC's -gdwarf-4 is supported
     # See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101377 for why this is needed on Windows
@@ -653,12 +568,102 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
     cmake_pop_check_state()
   endif()
 
-  # Force color diagnostics when one of these conditions are met
-  if(DEFINED ENV{CI} OR DEFINED ENV{USE_CCACHE} OR CMAKE_GENERATOR MATCHES Ninja)
-    if(EMSCRIPTEN OR (USE_GCC AND NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 4.9))
-      target_compile_options(sdl-global-options INTERFACE -fdiagnostics-color=always)
-    elseif(USE_CLANG AND NOT CMAKE_C_COMPILER_ID MATCHES AppleClang)
-      target_compile_options(sdl-global-options INTERFACE -fcolor-diagnostics)
+  # Check for -Wall first, so later things can override pieces of it.
+  # Note: clang-cl treats -Wall as -Weverything (which is very loud),
+  #       /W3 as -Wall, and /W4 as -Wall -Wextra.  So: /W3 is enough.
+  check_c_compiler_flag(-Wall HAVE_GCC_WALL)
+  if(MSVC_CLANG)
+    target_compile_options(sdl-global-options INTERFACE "/W3")
+  elseif(HAVE_GCC_WALL)
+    target_compile_options(sdl-global-options INTERFACE "-Wall")
+    if(HAIKU)
+      target_compile_options(sdl-global-options INTERFACE "-Wno-multichar")
+    endif()
+  endif()
+
+  check_c_compiler_flag(-Wundef HAVE_GCC_WUNDEF)
+  if(HAVE_GCC_WUNDEF)
+    target_compile_options(sdl-global-options INTERFACE "-Wundef")
+  endif()
+
+  check_c_compiler_flag(-fno-strict-aliasing HAVE_GCC_NO_STRICT_ALIASING)
+  if(HAVE_GCC_NO_STRICT_ALIASING)
+    target_compile_options(sdl-global-options INTERFACE "-fno-strict-aliasing")
+  endif()
+
+  check_c_compiler_flag(-Wdocumentation HAVE_GCC_WDOCUMENTATION)
+  if(HAVE_GCC_WDOCUMENTATION)
+    if(SDL_WERROR)
+      check_c_compiler_flag(-Werror=documentation HAVE_GCC_WERROR_DOCUMENTATION)
+      if(HAVE_GCC_WERROR_DOCUMENTATION)
+        target_compile_options(sdl-global-options INTERFACE "-Werror=documentation")
+      endif()
+    endif()
+    target_compile_options(sdl-global-options INTERFACE "-Wdocumentation")
+  endif()
+
+  check_c_compiler_flag(-Wdocumentation-unknown-command HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND)
+  if(HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND)
+    if(SDL_WERROR)
+      check_c_compiler_flag(-Werror=documentation-unknown-command HAVE_GCC_WERROR_DOCUMENTATION_UNKNOWN_COMMAND)
+      if(HAVE_GCC_WERROR_DOCUMENTATION_UNKNOWN_COMMAND)
+        target_compile_options(sdl-global-options INTERFACE "-Werror=documentation-unknown-command")
+      endif()
+    endif()
+    target_compile_options(sdl-global-options INTERFACE "-Wdocumentation-unknown-command")
+  endif()
+
+  check_c_compiler_flag(-fcomment-block-commands=threadsafety HAVE_GCC_COMMENT_BLOCK_COMMANDS)
+  if(HAVE_GCC_COMMENT_BLOCK_COMMANDS)
+    target_compile_options(sdl-global-options INTERFACE "-fcomment-block-commands=threadsafety")
+  else()
+    check_c_compiler_flag(/clang:-fcomment-block-commands=threadsafety HAVE_CLANG_COMMENT_BLOCK_COMMANDS)
+    if(HAVE_CLANG_COMMENT_BLOCK_COMMANDS)
+      target_compile_options(sdl-global-options INTERFACE "/clang:-fcomment-block-commands=threadsafety")
+    endif()
+  endif()
+
+  check_c_compiler_flag(-Wshadow HAVE_GCC_WSHADOW)
+  if(HAVE_GCC_WSHADOW)
+    target_compile_options(sdl-global-options INTERFACE "-Wshadow")
+  endif()
+
+  check_c_compiler_flag(-Wunused-local-typedefs HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS)
+  if(HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS)
+    target_compile_options(sdl-global-options INTERFACE "-Wno-unused-local-typedefs")
+  endif()
+
+  if(APPLE)
+    # FIXME: don't use deprecated declarations
+    check_c_compiler_flag(-Wno-error=deprecated-declarations COMPILER_SUPPORTS_WNO_ERROR_DEPRECATED_DECLARATIONS)
+    if(COMPILER_SUPPORTS_WNO_ERROR_DEPRECATED_DECLARATIONS)
+      sdl_compile_options(PRIVATE "-Wno-error=deprecated-declarations")
+    endif()
+  endif()
+
+  if(APPLE)
+    check_linker_flag(C "-Wl,-undefined,error" COMPILER_SUPPORTS_WL_UNDEFINED_ERROR)
+    if(COMPILER_SUPPORTS_WL_UNDEFINED_ERROR)
+      sdl_shared_link_options("-Wl,-undefined,error")
+    endif()
+  else()
+    cmake_push_check_state()
+    check_linker_flag(C "-Wl,--no-undefined" COMPILER_SUPPORTS_WL_NO_UNDEFINED)
+    #FIXME: originally this if had an additional "AND NOT (USE_CLANG AND WINDOWS)"
+    if(COMPILER_SUPPORTS_WL_NO_UNDEFINED)
+      sdl_shared_link_options("-Wl,--no-undefined")
+    endif()
+  endif()
+
+  if(USE_CLANG)
+    check_c_compiler_flag("-fcolor-diagnostics" COMPILER_SUPPORTS_FCOLOR_DIAGNOSTICS)
+    if(COMPILER_SUPPORTS_FCOLOR_DIAGNOSTICS)
+      target_compile_options(sdl-global-options INTERFACE "-fcolor-diagnostics")
+    endif()
+  else()
+    check_c_compiler_flag("-fdiagnostics-color=always" COMPILER_SUPPORTS_FDIAGNOSTICS_COLOR_ALWAYS)
+    if(COMPILER_SUPPORTS_FDIAGNOSTICS_COLOR_ALWAYS)
+      target_compile_options(sdl-global-options INTERFACE "-fdiagnostics-color=always")
     endif()
   endif()
 endif()
@@ -671,8 +676,9 @@ if(MSVC)
       "_CRT_SECURE_NO_WARNINGS"
   )
 
-  # CET support was added in VS 16.7
+  # CET support was added in VS 2019 16.7
   if(MSVC_VERSION GREATER 1926 AND CMAKE_GENERATOR_PLATFORM MATCHES "Win32|x64")
+    # Mark SDL3.dll as compatible with Control-flow Enforcement Technology (CET)
     sdl_shared_link_options("-CETCOMPAT")
   endif()
 endif()
@@ -680,7 +686,7 @@ endif()
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   # Due to a limitation of Microsoft's LTO implementation, LTO must be disabled for memcpy and memset.
   # The same applies to various functions normally belonging in the C library (for x86 architecture).
-  set_property(SOURCE src/stdlib/SDL_mslibc.c APPEND_STRING PROPERTY COMPILE_FLAGS " /GL-")
+  set_property(SOURCE "${SDL3_SOURCE_DIR}/src/stdlib/SDL_mslibc.c" APPEND_STRING PROPERTY COMPILE_FLAGS " /GL-")
 endif()
 
 if(SDL_ASSEMBLY)
@@ -1063,89 +1069,104 @@ endif()
 
 # TODO: Can't deactivate on FreeBSD? w/o LIBC, SDL_stdinc.h can't define anything.
 if(SDL_LIBC)
-  if(WINDOWS AND NOT MINGW)
-    set(HAVE_LIBC TRUE)
-    check_include_file(stdint.h HAVE_STDINT_H)
-    foreach(_HEADER stdio.h string.h wchar.h ctype.h math.h limits.h)
-      string(TOUPPER "HAVE_${_HEADER}" _UPPER)
-      string(REPLACE "." "_" _HAVE_H ${_UPPER})
-      set(${_HAVE_H} 1)
-    endforeach()
-    set(HAVE_SIGNAL_H 1)
-    foreach(_FN abs acos acosf asin asinf atan atan2 atan2f atanf atof atoi bsearch calloc ceil ceilf copysign copysignf cos cosf exp expf fabs fabsf floor floorf fmod fmodf free itoa log log10 log10f logf lround lroundf _ltoa malloc memcmp memcpy memmove memset modf modff pow powf qsort realloc round roundf scalbn scalbnf sin sinf sqrt sqrtf sscanf strchr strcmp _stricmp strlen _strlwr strncmp _strnicmp strrchr _strrev strstr strtod strtol strtoll strtoul _strupr tan tanf trunc truncf _ultoa wcscmp _wcsdup wcsdup _wcsicmp wcslen wcsncmp _wcsnicmp wcsstr wcstol)
-      string(TOUPPER ${_FN} _UPPER)
-      set(HAVE_${_UPPER} 1)
-    endforeach()
-    set(HAVE_ALLOCA 1)
-  else()
-    set(HAVE_LIBC TRUE)
-    set(headers_to_check
-      ctype.h
-      float.h
-      iconv.h
-      inttypes.h
-      limits.h
-      malloc.h
-      math.h
-      memory.h
-      signal.h
-      stdarg.h
-      stddef.h
-      stdint.h
-      stdio.h
-      stdlib.h
-      string.h
-      strings.h
-      sys/types.h
-      wchar.h
-    )
-    if(NOT EMSCRIPTEN)
-      list(APPEND headers_to_check libunwind.h)
+  set(available_headers)
+  set(HAVE_LIBC TRUE)
+  set(headers_to_check
+    alloca.h
+    ctype.h
+    float.h
+    iconv.h
+    inttypes.h
+    limits.h
+    malloc.h
+    math.h
+    memory.h
+    signal.h
+    stdarg.h
+    stddef.h
+    stdint.h
+    stdio.h
+    stdlib.h
+    string.h
+    strings.h
+    sys/types.h
+    wchar.h
+  )
+  if(NOT EMSCRIPTEN)
+    list(APPEND headers_to_check libunwind.h)
+  endif()
+  foreach(_HEADER IN LISTS headers_to_check)
+    string(TOUPPER "${_HEADER}" HEADER_IDENTIFIER)
+    string(REGEX REPLACE "[./]" "_" HEADER_IDENTIFIER "${HEADER_IDENTIFIER}")
+    set(LIBC_HAS_VAR "LIBC_HAS_${HEADER_IDENTIFIER}")
+    check_include_file("${_HEADER}" "${LIBC_HAS_VAR}")
+    set(HAVE_${HEADER_IDENTIFIER} ${${LIBC_HAS_VAR}})
+    if(HAVE_${HEADER_IDENTIFIER})
+      list(APPEND available_headers "${_HEADER}")
     endif()
-    foreach(_HEADER ${headers_to_check})
-      string(TOUPPER "${_HEADER}" HEADER_IDENTIFIER)
-      string(REGEX REPLACE "[./]" "_" HEADER_IDENTIFIER "${HEADER_IDENTIFIER}")
-      set(LIBC_HAS_VAR "LIBC_HAS_${HEADER_IDENTIFIER}")
-      check_include_file("${_HEADER}" "${LIBC_HAS_VAR}")
-      set(HAVE_${HEADER_IDENTIFIER} ${${LIBC_HAS_VAR}})
-    endforeach()
+  endforeach()
+
+  set(symbols_to_check
+    abs acos acosf alloca asin asinf atan atan2 atan2f atanf atof atoi
+    bcopy bsearch
+    calloc ceil ceilf copysign copysignf cos cosf
+    _Exit exp expf
+    fabs fabsf floor floorf fmod fmodf fopen64 free fseeko fseeko64
+    getenv
+    _i64toa index itoa
+    log log10 log10f logf lround lroundf _ltoa
+    malloc memcmp memcpy memmove memset modf modff
+    pow powf putenv
+    qsort
+    realloc rindex round roundf
+    scalbn scalbnf setenv sin sinf sqrt sqrtf sscanf strchr
+    strcmp strlcat strlcpy strlen strncmp
+    strrchr strstr strtod strtok_r strtol strtoll strtoul strtoull
+    tan tanf trunc truncf
+    unsetenv
+    vsnprintf vsscanf
+    wcscmp wcsdup wcslcat wcslcpy wcslen wcsncmp wcsstr wcstol
+  )
+  if(WINDOWS)
+    list(APPEND symbols_to_check
+      _stricmp _strlwr _strnicmp _strrev _strupr _ui64toa _uitoa _ultoa _wcsdup _wcsicmp _wcsnicmp
+    )
+  else()
+    list(APPEND symbols_to_check
+        strcasecmp strcasestr strncasecmp wcscasecmp wcsncasecmp
+    )
+  endif()
+  check_library_exists(m pow "" HAVE_LIBM)
+  cmake_push_check_state()
+  if(HAVE_LIBM)
+    sdl_add_dependency(math LIBS m)
+    list(APPEND CMAKE_REQUIRED_LIBRARIES m)
+  endif()
+  foreach(_FN IN LISTS symbols_to_check)
+    string(TOUPPER ${_FN} _UPPER)
+    set(LIBC_HAS_VAR "LIBC_HAS_${_UPPER}")
+    check_symbol_exists("${_FN}" "${available_headers}" ${LIBC_HAS_VAR})
+    set(HAVE_${_UPPER} ${${LIBC_HAS_VAR}})
+  endforeach()
+  cmake_pop_check_state()
+
+  if(NOT WINDOWS)
     check_include_file(linux/input.h HAVE_LINUX_INPUT_H)
 
-    set(STDC_HEADER_NAMES "stddef.h;stdarg.h;stdlib.h;string.h;stdio.h;wchar.h;float.h")
     # TODO: refine the mprotect check
+    # FIXME: remove HAVE_MPROTECT everywhere (it is not used)
     check_c_source_compiles("#include <sys/types.h>
                              #include <sys/mman.h>
                              int main(void) { return 0; }" HAVE_MPROTECT)
-    foreach(_FN abs atof atoi bcopy bsearch calloc _Exit fopen64 free fseeko fseeko64 getenv _i64toa index itoa _ltoa malloc memcmp memcpy memmove memset putenv qsort realloc rindex setenv sscanf strcasecmp strcasestr strchr strcmp _stricmp strlcat strlcpy strlen _strlwr strncasecmp strncmp _strnicmp strrchr _strrev strstr strtod strtok_r strtol strtoll strtoul strtoull _strupr _ui64toa _uitoa _ultoa unsetenv vsnprintf vsscanf wcscasecmp wcscmp _wcsdup wcsdup _wcsicmp wcslcat wcslcpy wcslen wcsncasecmp wcsncmp _wcsnicmp wcsstr wcstol)
-      string(TOUPPER ${_FN} _UPPER)
-      set(LIBC_HAS_VAR "LIBC_HAS_${_UPPER}")
-      check_symbol_exists("${_FN}" "${STDC_HEADER_NAMES}" ${LIBC_HAS_VAR})
-      set(HAVE_${_UPPER} ${${LIBC_HAS_VAR}})
-    endforeach()
 
     check_symbol_exists(sigaction "signal.h" HAVE_SIGACTION)
     check_symbol_exists(setjmp "setjmp.h" HAVE_SETJMP)
-    check_symbol_exists(nanosleep "time.h" FOUND_NANOSLEEP)
-    set(HAVE_NANOSLEEP ${FOUND_NANOSLEEP})
+    check_symbol_exists(nanosleep "time.h" HAVE_NANOSLEEP)
     check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
     check_symbol_exists(sysctlbyname "sys/types.h;sys/sysctl.h" HAVE_SYSCTLBYNAME)
     check_symbol_exists(getauxval "sys/auxv.h" HAVE_GETAUXVAL)
     check_symbol_exists(elf_aux_info "sys/auxv.h" HAVE_ELF_AUX_INFO)
     check_symbol_exists(poll "poll.h" HAVE_POLL)
-
-    check_library_exists(m pow "" HAVE_LIBM)
-    cmake_push_check_state()
-    if(HAVE_LIBM)
-      sdl_add_dependency(math LIBS m)
-      list(APPEND CMAKE_REQUIRED_LIBRARIES m)
-    endif()
-    foreach(_FN atan atan2 atanf atan2f ceil ceilf copysign copysignf cos cosf exp expf fabs fabsf floor floorf fmod fmodf log logf log10 log10f lround lroundf pow powf round roundf scalbn scalbnf sin sinf sqrt sqrtf tan tanf acos acosf asin asinf trunc truncf)
-      string(TOUPPER ${_FN} _UPPER)
-      set(LIBC_HASVAR "LIBC_HAS_${_UPPER}")
-      check_symbol_exists("${_FN}" "math.h" ${LIBC_HASVAR})
-      set(HAVE_${_UPPER} ${${LIBC_HASVAR}})
-    endforeach()
-    cmake_pop_check_state()
 
     if(SDL_SYSTEM_ICONV)
       check_library_exists(iconv iconv_open "" HAVE_LIBICONV)
@@ -1160,19 +1181,6 @@ if(SDL_LIBC)
           set(HAVE_SYSTEM_ICONV TRUE)
         endif()
       endif()
-    endif()
-
-    if(NOT APPLE)
-      check_include_file(alloca.h HAVE_ALLOCA_H)
-      check_symbol_exists(alloca "alloca.h" HAVE_ALLOCA1)
-      check_symbol_exists(alloca "stdlib.h" HAVE_ALLOCA2)
-      check_symbol_exists(alloca "malloc.h" HAVE_ALLOCA3)
-      if(HAVE_ALLOCA1 OR HAVE_ALLOCA2 OR HAVE_ALLOCA3)
-        set(HAVE_ALLOCA 1)
-      endif()
-    else()
-      set(HAVE_ALLOCA_H 1)
-      set(HAVE_ALLOCA 1)
     endif()
 
     check_struct_has_member("struct sigaction" "sa_sigaction" "signal.h" HAVE_SA_SIGACTION)
