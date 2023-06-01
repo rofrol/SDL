@@ -55,6 +55,7 @@ include(${SDL3_SOURCE_DIR}/cmake/CheckCPUArchitecture.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/GetGitRevisionDescription.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/3rdparty.cmake)
 
+#FIXME: don't require CMake 3.26 (remove need for BUILD_LOCAL_INTERFACE)
 if(CMAKE_VERSION VERSION_LESS "3.26")
   set(build_local_interface "BUILD_INTERFACE")
 else()
@@ -1195,7 +1196,7 @@ else()
   endforeach()
 
   if(MSVC AND USE_CLANG)
-    check_c_compiler_flag("/Q_no-use-libirc" HAS_Q_NO_USE_LIBIRC )
+    check_c_compiler_flag("/Q_no-use-libirc" HAS_Q_NO_USE_LIBIRC)
   endif()
 endif()
 
@@ -2835,13 +2836,11 @@ endif()
 # 1. replace all `#cmakedefine`'s and `@abc@`
 configure_file("${SDL3_SOURCE_DIR}/include/build_config/SDL_build_config.h.cmake"
   "${SDL3_BINARY_DIR}/SDL_build_config.h.intermediate")
-# 2. Create the "include-config-${CMAKE_BUILD_TYPE}" folder (fails on older CMake versions when it does not exist)
-string(TOLOWER "${CMAKE_BUILD_TYPE}" lower_build_type)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/include-config-${lower_build_type}/build_config")
-# 3. generate SDL_build_config.h in an build_type-dependent folder (which should be first in the include search path)
+# 2. generate SDL_build_config.h in an build_type-dependent folder (which should be first in the include search path)
 file(GENERATE
-    OUTPUT "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/build_config/SDL_build_config.h"
-    INPUT "${SDL3_BINARY_DIR}/SDL_build_config.h.intermediate")
+  OUTPUT "${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/build_config/SDL_build_config.h"
+  INPUT "${SDL3_BINARY_DIR}/SDL_build_config.h.intermediate"
+)
 
 # Prepare the flags and remove duplicates
 if(EXTRA_CFLAGS)
@@ -3187,20 +3186,22 @@ if(SDL_SHARED)
   elseif(UNIX AND NOT ANDROID)
     set_target_properties(SDL3-shared PROPERTIES
       VERSION "${SDL_SO_VERSION}"
-      SOVERSION "${SDL_SO_VERSION_MAJOR}")
+      SOVERSION "${SDL_SO_VERSION_MAJOR}"
+    )
   else()
     if(WINDOWS OR CYGWIN)
       set_target_properties(SDL3-shared PROPERTIES
-        DEFINE_SYMBOL DLL_EXPORT)
+        DEFINE_SYMBOL DLL_EXPORT
+      )
     endif()
   endif()
   # Note: The clang toolset for Visual Studio does not support /NODEFAULTLIB.
   if(MSVC AND NOT SDL_LIBC AND NOT MSVC_CLANG AND NOT CMAKE_GENERATOR_PLATFORM STREQUAL "ARM")
     # Don't try to link with the default set of libraries.
     if(NOT WINDOWS_STORE)
-      set_property(TARGET SDL3-shared APPEND_STRING PROPERTY LINK_FLAGS "/NODEFAULTLIB")
+      # FIXME: is this needed? "-nodefaultlib:MSVCRT" ia already added when SDL_LIBC is false
+      target_link_options(SDL3-shared PRIVATE "/NODEFAULTLIB")
     endif()
-    set_property(TARGET SDL3-shared APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS " /NODEFAULTLIB")
   endif()
   target_link_libraries(SDL3-shared PRIVATE ${SDL_CMAKE_DEPENDS})
   target_include_directories(SDL3-shared
@@ -3212,9 +3213,7 @@ if(SDL_SHARED)
   # This picks up all the compiler options and such we've accumulated up to here.
   target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-global-options>)
   if(MINGW OR CYGWIN)
-    if(NOT CMAKE_VERSION VERSION_LESS "3.13")
-      target_link_options(SDL3-shared PRIVATE -static-libgcc)
-    endif()
+    target_link_options(SDL3-shared PRIVATE -static-libgcc)
   endif()
   # Use `Compatible Interface Properties` to:
   # - allow consumers to enforce a shared/static library
@@ -3277,7 +3276,7 @@ sdl_compile_definitions(
 ##### Tests #####
 
 if(SDL_TEST)
-  file(GLOB TEST_SOURCES ${SDL3_SOURCE_DIR}/src/test/*.c)
+  file(GLOB TEST_SOURCES "${SDL3_SOURCE_DIR}/src/test/*.c")
   add_library(SDL3_test STATIC ${TEST_SOURCES})
   add_library(SDL3::SDL3_test ALIAS SDL3_test)
   target_link_libraries(SDL3_test PRIVATE $<${build_local_interface}:sdl-global-options>)
@@ -3293,11 +3292,8 @@ if(SDL_TEST)
       )
     endif()
   endif()
-  target_include_directories(SDL3_test
-    PRIVATE
-      "$<BUILD_INTERFACE:${SDL3_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
-  )
   target_link_libraries(SDL3_test PUBLIC $<TARGET_NAME:SDL3::Headers>)
+  # FIXME: get rid of EXTRA_TEST_LIBS variable
   target_link_libraries(SDL3_test PRIVATE ${EXTRA_TEST_LIBS})
   set_property(TARGET SDL3_test APPEND PROPERTY COMPATIBLE_INTERFACE_STRING "SDL_VERSION")
   set_property(TARGET SDL3_test PROPERTY INTERFACE_SDL_VERSION "SDL${SDL3_VERSION_MAJOR}")
