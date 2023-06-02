@@ -13,10 +13,6 @@ else()
   set(SDL3_SUBPROJECT ON)
 endif()
 
-#FIXME: Create SDL3::checks target in include, and use that
-# The sdl-global-options interface library collects all PRIVATE build options for the SDL libraries + test + ...
-add_library(sdl-global-options INTERFACE)
-
 # CMake 3.0 expands the "if(${A})" in "set(OFF 1);set(A OFF);if(${A})" to "if(1)"
 # CMake 3.24+ emits a warning when not set.
 unset(OFF)
@@ -54,13 +50,6 @@ include(${SDL3_SOURCE_DIR}/cmake/sdlcompilers.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/CheckCPUArchitecture.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/GetGitRevisionDescription.cmake)
 include(${SDL3_SOURCE_DIR}/cmake/3rdparty.cmake)
-
-#FIXME: don't require CMake 3.26 (remove need for BUILD_LOCAL_INTERFACE)
-if(CMAKE_VERSION VERSION_LESS "3.26")
-  set(build_local_interface "BUILD_INTERFACE")
-else()
-  set(build_local_interface "BUILD_LOCAL_INTERFACE")
-endif()
 
 SDL_DetectCompiler()
 SDL_DetectCPUArchitecture()
@@ -359,8 +348,6 @@ set_option(SDL_ASAN                "Use AddressSanitizer to detect memory errors
 set_option(SDL_CCACHE              "Use Ccache to speed up build" OFF)
 set_option(SDL_CLANG_TIDY          "Run clang-tidy static analysis" OFF)
 
-option(SDL_WERROR "Enable -Werror" OFF)
-
 set(SDL_VENDOR_INFO "" CACHE STRING "Vendor name and/or version to add to SDL_REVISION")
 
 cmake_dependent_option(SDL_SHARED "Build a shared version of the library" ${SDL_SHARED_DEFAULT} ${SDL_SHARED_AVAILABLE} OFF)
@@ -384,11 +371,19 @@ set(HAVE_STATIC_PIC "${SDL_STATIC_PIC}")
 if(SDL_SHARED)
   add_library(SDL3-shared SHARED)
   add_library(SDL3::SDL3-shared ALIAS SDL3-shared)
+  SDL_AddCommonCompilerFlags(SDL3-shared)
 endif()
 
 if(SDL_STATIC)
   add_library(SDL3-static STATIC)
   add_library(SDL3::SDL3-static ALIAS SDL3-static)
+  SDL_AddCommonCompilerFlags(SDL3-static)
+endif()
+
+if(SDL_TEST)
+  add_library(SDL3_test STATIC)
+  add_library(SDL3::SDL3_test ALIAS SDL3_test)
+  SDL_AddCommonCompilerFlags(SDL3_test)
 endif()
 
 # Make sure SDL3::SDL3 always exists
@@ -558,82 +553,6 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
       int main(void) { return 0; }" HAVE_GCC_FVISIBILITY)
   cmake_pop_check_state()
 
-  if(MINGW)
-    # See if GCC's -gdwarf-4 is supported
-    # See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101377 for why this is needed on Windows
-    cmake_push_check_state()
-    check_c_compiler_flag("-gdwarf-4" HAVE_GDWARF_4)
-    if(HAVE_GDWARF_4)
-      target_compile_options(sdl-global-options INTERFACE "-gdwarf-4")
-    endif()
-    cmake_pop_check_state()
-  endif()
-
-  # Check for -Wall first, so later things can override pieces of it.
-  # Note: clang-cl treats -Wall as -Weverything (which is very loud),
-  #       /W3 as -Wall, and /W4 as -Wall -Wextra.  So: /W3 is enough.
-  check_c_compiler_flag(-Wall HAVE_GCC_WALL)
-  if(MSVC_CLANG)
-    target_compile_options(sdl-global-options INTERFACE "/W3")
-  elseif(HAVE_GCC_WALL)
-    target_compile_options(sdl-global-options INTERFACE "-Wall")
-    if(HAIKU)
-      target_compile_options(sdl-global-options INTERFACE "-Wno-multichar")
-    endif()
-  endif()
-
-  check_c_compiler_flag(-Wundef HAVE_GCC_WUNDEF)
-  if(HAVE_GCC_WUNDEF)
-    target_compile_options(sdl-global-options INTERFACE "-Wundef")
-  endif()
-
-  check_c_compiler_flag(-fno-strict-aliasing HAVE_GCC_NO_STRICT_ALIASING)
-  if(HAVE_GCC_NO_STRICT_ALIASING)
-    target_compile_options(sdl-global-options INTERFACE "-fno-strict-aliasing")
-  endif()
-
-  check_c_compiler_flag(-Wdocumentation HAVE_GCC_WDOCUMENTATION)
-  if(HAVE_GCC_WDOCUMENTATION)
-    if(SDL_WERROR)
-      check_c_compiler_flag(-Werror=documentation HAVE_GCC_WERROR_DOCUMENTATION)
-      if(HAVE_GCC_WERROR_DOCUMENTATION)
-        target_compile_options(sdl-global-options INTERFACE "-Werror=documentation")
-      endif()
-    endif()
-    target_compile_options(sdl-global-options INTERFACE "-Wdocumentation")
-  endif()
-
-  check_c_compiler_flag(-Wdocumentation-unknown-command HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND)
-  if(HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND)
-    if(SDL_WERROR)
-      check_c_compiler_flag(-Werror=documentation-unknown-command HAVE_GCC_WERROR_DOCUMENTATION_UNKNOWN_COMMAND)
-      if(HAVE_GCC_WERROR_DOCUMENTATION_UNKNOWN_COMMAND)
-        target_compile_options(sdl-global-options INTERFACE "-Werror=documentation-unknown-command")
-      endif()
-    endif()
-    target_compile_options(sdl-global-options INTERFACE "-Wdocumentation-unknown-command")
-  endif()
-
-  check_c_compiler_flag(-fcomment-block-commands=threadsafety HAVE_GCC_COMMENT_BLOCK_COMMANDS)
-  if(HAVE_GCC_COMMENT_BLOCK_COMMANDS)
-    target_compile_options(sdl-global-options INTERFACE "-fcomment-block-commands=threadsafety")
-  else()
-    check_c_compiler_flag(/clang:-fcomment-block-commands=threadsafety HAVE_CLANG_COMMENT_BLOCK_COMMANDS)
-    if(HAVE_CLANG_COMMENT_BLOCK_COMMANDS)
-      target_compile_options(sdl-global-options INTERFACE "/clang:-fcomment-block-commands=threadsafety")
-    endif()
-  endif()
-
-  check_c_compiler_flag(-Wshadow HAVE_GCC_WSHADOW)
-  if(HAVE_GCC_WSHADOW)
-    target_compile_options(sdl-global-options INTERFACE "-Wshadow")
-  endif()
-
-  check_c_compiler_flag(-Wunused-local-typedefs HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS)
-  if(HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS)
-    target_compile_options(sdl-global-options INTERFACE "-Wno-unused-local-typedefs")
-  endif()
-
   if(APPLE)
     # FIXME: don't use deprecated declarations
     check_c_compiler_flag(-Wno-error=deprecated-declarations COMPILER_SUPPORTS_WNO_ERROR_DEPRECATED_DECLARATIONS)
@@ -653,18 +572,6 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
     #FIXME: originally this if had an additional "AND NOT (USE_CLANG AND WINDOWS)"
     if(COMPILER_SUPPORTS_WL_NO_UNDEFINED)
       sdl_shared_link_options("-Wl,--no-undefined")
-    endif()
-  endif()
-
-  if(USE_CLANG)
-    check_c_compiler_flag("-fcolor-diagnostics" COMPILER_SUPPORTS_FCOLOR_DIAGNOSTICS)
-    if(COMPILER_SUPPORTS_FCOLOR_DIAGNOSTICS)
-      target_compile_options(sdl-global-options INTERFACE "-fcolor-diagnostics")
-    endif()
-  else()
-    check_c_compiler_flag("-fdiagnostics-color=always" COMPILER_SUPPORTS_FDIAGNOSTICS_COLOR_ALWAYS)
-    if(COMPILER_SUPPORTS_FDIAGNOSTICS_COLOR_ALWAYS)
-      target_compile_options(sdl-global-options INTERFACE "-fdiagnostics-color=always")
     endif()
   endif()
 endif()
@@ -1613,8 +1520,8 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
 
     if(HAVE_DBUS_DBUS_H)
       sdl_sources(
-          "${SDL3_SOURCE_DIR}/src/core/linux/SDL_dbus.c"
-          "${SDL3_SOURCE_DIR}/src/core/linux/SDL_system_theme.c"
+        "${SDL3_SOURCE_DIR}/src/core/linux/SDL_dbus.c"
+        "${SDL3_SOURCE_DIR}/src/core/linux/SDL_system_theme.c"
       )
     endif()
 
@@ -2818,20 +2725,6 @@ if(NOT HAVE_SDL_TIMERS)
   sdl_glob_sources(${SDL3_SOURCE_DIR}/src/timer/dummy/*.c)
 endif()
 
-if(SDL_WERROR)
-  if(MSVC)
-    check_c_compiler_flag(/WX HAVE_WX)
-    if(HAVE_WX)
-      target_compile_options(sdl-global-options INTERFACE "/WX")
-    endif()
-  elseif(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QNX)
-    check_c_compiler_flag(-Werror HAVE_WERROR)
-    if(HAVE_WERROR)
-      target_compile_options(sdl-global-options INTERFACE "-Werror")
-    endif()
-  endif()
-endif()
-
 # config variables may contain generator expression, so we need to generate SDL_build_config.h in 2 steps:
 # 1. replace all `#cmakedefine`'s and `@abc@`
 configure_file("${SDL3_SOURCE_DIR}/include/build_config/SDL_build_config.h.cmake"
@@ -2902,35 +2795,35 @@ macro(check_add_debug_flag FLAG SUFFIX)
 endmacro()
 
 macro(asan_check_add_debug_flag ASAN_FLAG)
-    check_add_debug_flag("-fsanitize=${ASAN_FLAG}" "${ASAN_FLAG}")
-    if(HAS_C_${ASAN_FLAG} OR HAS_CXX_${ASAN_FLAG})
-      set(HAVE_ASAN ON)
-    endif()
+  check_add_debug_flag("-fsanitize=${ASAN_FLAG}" "${ASAN_FLAG}")
+  if(HAS_C_${ASAN_FLAG} OR HAS_CXX_${ASAN_FLAG})
+    set(HAVE_ASAN ON)
+  endif()
 endmacro()
 
 macro(asan_check_add_debug_flag2 ASAN_FLAG)
-    # for some sanitize flags we have to manipulate the CMAKE_REQUIRED_LIBRARIES:
-    # http://cmake.3232098.n2.nabble.com/CHECK-CXX-COMPILER-FLAG-doesn-t-give-correct-result-for-fsanitize-address-tp7600216p7600217.html
+  # for some sanitize flags we have to manipulate the CMAKE_REQUIRED_LIBRARIES:
+  # http://cmake.3232098.n2.nabble.com/CHECK-CXX-COMPILER-FLAG-doesn-t-give-correct-result-for-fsanitize-address-tp7600216p7600217.html
 
-    set(FLAG "-fsanitize=${ASAN_FLAG}")
+  set(FLAG "-fsanitize=${ASAN_FLAG}")
 
-    cmake_push_check_state()
-    list(APPEND CMAKE_REQUIRED_LIBRARIES ${FLAG} asan)
-    check_c_compiler_flag (${FLAG} HAS_C_FLAG_${ASAN_FLAG})
-    check_cxx_compiler_flag (${FLAG} HAS_CXX_FLAG_${ASAN_FLAG})
-    cmake_pop_check_state()
+  cmake_push_check_state()
+  list(APPEND CMAKE_REQUIRED_LIBRARIES ${FLAG} asan)
+  check_c_compiler_flag (${FLAG} HAS_C_FLAG_${ASAN_FLAG})
+  check_cxx_compiler_flag (${FLAG} HAS_CXX_FLAG_${ASAN_FLAG})
+  cmake_pop_check_state()
 
-    if (HAS_C_FLAG_${ASAN_FLAG})
-        string(APPEND CMAKE_C_FLAGS_DEBUG " ${FLAG}")
-    endif()
+  if (HAS_C_FLAG_${ASAN_FLAG})
+    string(APPEND CMAKE_C_FLAGS_DEBUG " ${FLAG}")
+  endif()
 
-    if (HAS_CXX_${ASAN_FLAG})
-        string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${FLAG}")
-    endif()
+  if (HAS_CXX_${ASAN_FLAG})
+    string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${FLAG}")
+  endif()
 
-    if(HAS_C_${ASAN_FLAG} OR HAS_CXX_${ASAN_FLAG})
-      set(HAVE_ASAN ON)
-    endif()
+  if(HAS_C_${ASAN_FLAG} OR HAS_CXX_${ASAN_FLAG})
+    set(HAVE_ASAN ON)
+  endif()
 endmacro()
 
 # enable AddressSanitizer if supported
@@ -2995,10 +2888,6 @@ if(SDL_TESTS)
   set(HAVE_TESTS ON)
 endif()
 
-get_property(INFO_CHECKS TARGET sdl-global-options PROPERTY INTERFACE_COMPILE_OPTIONS)
-list(REMOVE_DUPLICATES INFO_CHECKS)
-listtostr(INFO_CHECKS INFO_CHECKS)
-
 listtostr(SDL_CMAKE_DEPENDS INFO_CMAKE_DEPENDS)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -3039,7 +2928,7 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   message(STATUS "")
 endif()
 message(STATUS " EXTRA DEFS:    ")
-message(STATUS " EXTRA CFLAGS:  ${INFO_CHECKS}")
+message(STATUS " EXTRA CFLAGS:  ")
 message(STATUS " EXTRA INCDIRS: ")
 message(STATUS " EXTRA LDFLAGS: ")
 message(STATUS " EXTRA LIBS:    ${INFO_CMAKE_DEPENDS}")
@@ -3210,8 +3099,6 @@ if(SDL_SHARED)
       "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src>"
   )
   target_link_libraries(SDL3-shared PUBLIC $<TARGET_NAME:SDL3::Headers>)
-  # This picks up all the compiler options and such we've accumulated up to here.
-  target_link_libraries(SDL3-shared PRIVATE $<${build_local_interface}:sdl-global-options>)
   if(MINGW OR CYGWIN)
     target_link_options(SDL3-shared PRIVATE -static-libgcc)
   endif()
@@ -3252,8 +3139,6 @@ if(SDL_STATIC)
       "$<BUILD_INTERFACE:${SDL3_SOURCE_DIR}/src>"
   )
   target_link_libraries(SDL3-static PUBLIC $<TARGET_NAME:SDL3::Headers>)
-  # This picks up all the compiler options and such we've accumulated up to here.
-  target_link_libraries(SDL3-static PRIVATE $<${build_local_interface}:sdl-global-options>)
   # Use `Compatible Interface Properties` to:
   # - allow consumers to enforce a shared/static library
   # - block linking to SDL libraries of different major version
@@ -3277,9 +3162,7 @@ sdl_compile_definitions(
 
 if(SDL_TEST)
   file(GLOB TEST_SOURCES "${SDL3_SOURCE_DIR}/src/test/*.c")
-  add_library(SDL3_test STATIC ${TEST_SOURCES})
-  add_library(SDL3::SDL3_test ALIAS SDL3_test)
-  target_link_libraries(SDL3_test PRIVATE $<${build_local_interface}:sdl-global-options>)
+  target_sources(SDL3_test PRIVATE ${TEST_SOURCES})
   if(APPLE)
     set_target_properties(SDL3_test PROPERTIES
       FRAMEWORK "${SDL_FRAMEWORK}"
@@ -3359,22 +3242,18 @@ else()
   set(SDL_SDLtest_INSTALL_CMAKEFILENAME "SDL3testTargets.cmake")
   endif()
 
-if(CMAKE_VERSION VERSION_LESS "3.26")
-  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/SDL3sharedTargets.cmake" [[message(FATAL_ERROR "find_package(SDL3) using the SDL3 build directory not supported for CMake versions older then 3.26.")]])
-else()
-  export(TARGETS SDL3_Headers NAMESPACE "SDL3::" FILE "SDL3headersTargets.cmake")
+export(TARGETS SDL3_Headers NAMESPACE "SDL3::" FILE "SDL3headersTargets.cmake")
 
-  if(SDL_SHARED)
-    export(TARGETS SDL3-shared NAMESPACE "SDL3::" FILE "SDL3sharedTargets.cmake")
-  endif()
+if(SDL_SHARED)
+  export(TARGETS SDL3-shared NAMESPACE "SDL3::" FILE "SDL3sharedTargets.cmake")
+endif()
 
-  if(SDL_STATIC)
-    export(TARGETS SDL3-static NAMESPACE "SDL3::" FILE "SDL3staticTargets.cmake")
-  endif()
+if(SDL_STATIC)
+  export(TARGETS SDL3-static NAMESPACE "SDL3::" FILE "SDL3staticTargets.cmake")
+endif()
 
-  if(SDL_TEST)
-    export(TARGETS SDL3_test NAMESPACE "SDL3::" FILE "SDL3testTargets.cmake")
-  endif()
+if(SDL_TEST)
+  export(TARGETS SDL3_test NAMESPACE "SDL3::" FILE "SDL3testTargets.cmake")
 endif()
 
 sdl_cmake_config_find_pkg_config_commands(SDL_FIND_PKG_CONFIG_COMMANDS)
@@ -3387,6 +3266,12 @@ configure_package_config_file(cmake/SDL3Config.cmake.in SDL3Config.cmake
 write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/SDL3ConfigVersion.cmake"
   COMPATIBILITY AnyNewerVersion
 )
+
+sdl_cmake_config_required_modules(sdl_cmake_modules)
+if(sdl_cmake_modules)
+  message(STATUS "Copying ${sdl_cmake_modules}")
+  execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${sdl_cmake_modules} "${SDL3_BINARY_DIR}")
+endif()
 
 if(NOT SDL_DISABLE_INSTALL)
 
@@ -3459,18 +3344,10 @@ if(NOT SDL_DISABLE_INSTALL)
     )
   endif()
 
-  # FIXME: optionally install modules?
   install(FILES
       ${CMAKE_CURRENT_BINARY_DIR}/SDL3Config.cmake
       ${CMAKE_CURRENT_BINARY_DIR}/SDL3ConfigVersion.cmake
-      ${SDL3_SOURCE_DIR}/cmake/PkgConfigHelper.cmake
-      ${SDL3_SOURCE_DIR}/cmake/FindJack.cmake
-      ${SDL3_SOURCE_DIR}/cmake/FindLibDecor.cmake
-      ${SDL3_SOURCE_DIR}/cmake/FindLibInotify.cmake
-      ${SDL3_SOURCE_DIR}/cmake/FindLibUSB.cmake
-      ${SDL3_SOURCE_DIR}/cmake/FindPipeWire.cmake
-      ${SDL3_SOURCE_DIR}/cmake/FindPulseAudio.cmake
-      ${SDL3_SOURCE_DIR}/cmake/FindSndIO.cmake
+      ${sdl_cmake_modules}
     DESTINATION "${SDL_SDL_INSTALL_REAL_CMAKEDIR}"
   )
 
@@ -3552,4 +3429,3 @@ endif()
 string(APPEND CMAKE_OBJC_FLAGS " ${CMAKE_C_FLAGS}")
 
 debug_show_sdl_deps()
-

@@ -4,6 +4,7 @@ project(SDL3_test)
 enable_testing()
 
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/sdlplatform.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/sdlcompilers.cmake")
 SDL_DetectCMakePlatform()
 
 include(CheckCCompilerFlag)
@@ -83,6 +84,7 @@ macro(add_sdl_test_executable TARGET)
     else()
         add_executable(${TARGET} ${AST_SOURCES})
     endif()
+    SDL_AddCommonCompilerFlags(${TARGET})
     target_link_libraries(${TARGET} PRIVATE SDL3::SDL3_test SDL3::${sdl_name_component})
     if(NOT AST_NO_C90 AND NOT SDL_CMAKE_PLATFORM MATCHES "^(n3ds|ps2|psp)$")
         set_property(TARGET ${TARGET} PROPERTY C_STANDARD 90)
@@ -126,10 +128,6 @@ macro(add_sdl_test_executable TARGET)
 
     if(OPENGL_FOUND)
         target_compile_definitions(${TARGET} PRIVATE HAVE_OPENGL)
-    endif()
-
-    if(TARGET sdl-global-options)
-        target_link_libraries(${TARGET} PRIVATE $<BUILD_INTERFACE:sdl-global-options>)
     endif()
 
     if(SDL3_TESTS_SUBPROJECT)
