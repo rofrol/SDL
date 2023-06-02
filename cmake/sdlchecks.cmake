@@ -706,6 +706,13 @@ macro(CheckOpenGLES)
   endif()
 endmacro()
 
+macro(CheckVulkan)
+  if(SDL_VULKAN)
+    set(SDL_VIDEO_VULKAN 1)
+    set(HAVE_VULKAN TRUE)
+  endif()
+endmacro()
+
 # Requires:
 # - EGL
 macro(CheckQNXScreen)
