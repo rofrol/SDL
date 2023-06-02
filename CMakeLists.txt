@@ -1648,8 +1648,6 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
     set (USE_POSIX_SPAWN 1)
   endif()
 elseif(WINDOWS)
-  find_program(WINDRES windres)
-
   check_c_source_compiles("
     #include <windows.h>
     int main(int argc, char **argv) { return 0; }" HAVE_WIN32_CC)
