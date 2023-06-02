@@ -691,17 +691,17 @@ macro(CheckOpenGLES)
         #include <GLES/glext.h>
         int main (int argc, char** argv) { return 0; }" HAVE_OPENGLES_V1)
     if(HAVE_OPENGLES_V1)
-        set(HAVE_OPENGLES TRUE)
-        set(SDL_VIDEO_OPENGL_ES 1)
+      set(HAVE_OPENGLES TRUE)
+      set(SDL_VIDEO_OPENGL_ES 1)
     endif()
     check_c_source_compiles("
-        #include <GLES2/gl2.h>
-        #include <GLES2/gl2ext.h>
-        int main (int argc, char** argv) { return 0; }" HAVE_OPENGLES_V2)
+      #include <GLES2/gl2.h>
+      #include <GLES2/gl2ext.h>
+      int main (int argc, char** argv) { return 0; }" HAVE_OPENGLES_V2)
     if(HAVE_OPENGLES_V2)
-        set(HAVE_OPENGLES TRUE)
-        set(SDL_VIDEO_OPENGL_ES2 1)
-        set(SDL_VIDEO_RENDER_OGL_ES2 1)
+      set(HAVE_OPENGLES TRUE)
+      set(SDL_VIDEO_OPENGL_ES2 1)
+      set(SDL_VIDEO_RENDER_OGL_ES2 1)
     endif()
   endif()
 endmacro()
@@ -789,12 +789,12 @@ macro(CheckPTHREAD)
     # Run some tests
     string(APPEND CMAKE_REQUIRED_FLAGS " ${PTHREAD_CFLAGS} ${PTHREAD_LDFLAGS}")
     check_c_source_compiles("
-      #include <pthread.h>
-      int main(int argc, char** argv) {
-        pthread_attr_t type;
-        pthread_attr_init(&type);
-        return 0;
-      }" HAVE_PTHREADS)
+        #include <pthread.h>
+        int main(int argc, char** argv) {
+          pthread_attr_t type;
+          pthread_attr_init(&type);
+          return 0;
+        }" HAVE_PTHREADS)
     if(HAVE_PTHREADS)
       set(SDL_THREAD_PTHREAD 1)
       separate_arguments(PTHREAD_CFLAGS)
@@ -858,16 +858,16 @@ macro(CheckPTHREAD)
       endif()
 
       sdl_sources(
-          ${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_systhread.c
-          ${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_sysmutex.c   # Can be faked, if necessary
-          ${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_syscond.c    # Can be faked, if necessary
-          ${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_sysrwlock.c   # Can be faked, if necessary
-          ${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_systls.c
+        "${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_systhread.c"
+        "${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_sysmutex.c"   # Can be faked, if necessary
+        "${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_syscond.c"    # Can be faked, if necessary
+        "${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_sysrwlock.c"   # Can be faked, if necessary
+        "${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_systls.c"
       )
       if(HAVE_PTHREADS_SEM)
-        sdl_sources(${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_syssem.c)
+        sdl_sources("${SDL3_SOURCE_DIR}/src/thread/pthread/SDL_syssem.c")
       else()
-        sdl_sources(${SDL3_SOURCE_DIR}/src/thread/generic/SDL_syssem.c)
+        sdl_sources("${SDL3_SOURCE_DIR}/src/thread/generic/SDL_syssem.c")
       endif()
       set(HAVE_SDL_THREADS TRUE)
     endif()
@@ -1010,7 +1010,6 @@ macro(CheckUSBHID)
     #FIXME: properly add usb libs with pkg-config or whatever
     sdl_add_dependency(usbhid LIBS ${USB_LIBS})
     set(HAVE_SDL_JOYSTICK TRUE)
-
   endif()
   cmake_pop_check_state()
 endmacro()
