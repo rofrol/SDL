@@ -1275,7 +1275,7 @@ if(ANDROID)
     endif()
 
     if(SDL_VULKAN)
-      CHECK_C_SOURCE_COMPILES("
+      check_c_source_compiles("
       #if defined(__ARM_ARCH) && __ARM_ARCH < 7
       #error Vulkan doesn't work on this configuration
       #endif
@@ -2781,15 +2781,15 @@ else()
 endif()
 
 macro(check_add_debug_flag FLAG SUFFIX)
-    check_c_compiler_flag(${FLAG} HAS_C_FLAG_${SUFFIX})
-    if(HAS_C_FLAG_${SUFFIX})
-        string(APPEND CMAKE_C_FLAGS_DEBUG " ${FLAG}")
-    endif()
+  check_c_compiler_flag(${FLAG} HAS_C_FLAG_${SUFFIX})
+  if(HAS_C_FLAG_${SUFFIX})
+    string(APPEND CMAKE_C_FLAGS_DEBUG " ${FLAG}")
+  endif()
 
-    check_cxx_compiler_flag(${FLAG} HAS_CXX_${SUFFIX})
-    if(HAS_CXX_${SUFFIX})
-        string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${FLAG}")
-    endif()
+  check_cxx_compiler_flag(${FLAG} HAS_CXX_${SUFFIX})
+  if(HAS_CXX_${SUFFIX})
+    string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${FLAG}")
+  endif()
 endmacro()
 
 macro(asan_check_add_debug_flag ASAN_FLAG)
