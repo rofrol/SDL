@@ -54,7 +54,7 @@ macro(SDL_DetectCMakePlatform)
   elseif(CMAKE_SYSTEM_NAME MATCHES "QNX.*")
     set(SDL_CMAKE_PLATFORM QNX)
   elseif(CMAKE_SYSTEM_NAME MATCHES "BeOS.*")
-    message_error("BeOS support has been removed as of SDL 2.0.2.")
+    message(FATAL_ERROR "BeOS support has been removed as of SDL 2.0.2.")
   endif()
 
   if(SDL_CMAKE_PLATFORM)
