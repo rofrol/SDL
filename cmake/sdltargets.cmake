@@ -25,7 +25,7 @@ function(sdl_sources)
   set_property(TARGET SDL3-collector APPEND PROPERTY INTERFACE_SOURCES ${ARGS_SHARED} ${ARGS_STATIC} ${ARGS_UNPARSED_ARGUMENTS})
 endfunction()
 
-function(sdl_add_dependency ID)
+function(sdl_link_dependency ID)
   cmake_parse_arguments(ARGS "" "" "INCLUDES;PKG_CONFIG_PREFIX;PKG_CONFIG_SPECS;CMAKE_MODULE;LIBS;LINK_OPTIONS" ${ARGN})
   if(TARGET SDL3-shared)
    target_include_directories(SDL3-shared SYSTEM PRIVATE ${ARGS_INCLUDES})

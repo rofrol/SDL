@@ -1047,7 +1047,7 @@ if(SDL_LIBC)
   check_library_exists(m pow "" HAVE_LIBM)
   cmake_push_check_state()
   if(HAVE_LIBM)
-    sdl_add_dependency(math LIBS m)
+    sdl_link_dependency(math LIBS m)
     list(APPEND CMAKE_REQUIRED_LIBRARIES m)
   endif()
   foreach(_FN IN LISTS symbols_to_check)
@@ -1074,7 +1074,7 @@ if(SDL_LIBC)
     if(SDL_SYSTEM_ICONV)
       check_library_exists(iconv iconv_open "" HAVE_LIBICONV)
       if(HAVE_LIBICONV)
-        sdl_add_dependency(iconv LIBS iconv)
+        sdl_link_dependency(iconv LIBS iconv)
         set(HAVE_ICONV 1)
         set(HAVE_SYSTEM_ICONV TRUE)
       else()
@@ -1203,7 +1203,7 @@ if(ANDROID)
     set(SDL_AUDIO_DRIVER_OPENSLES 1)
     sdl_glob_sources("${SDL3_SOURCE_DIR}/src/audio/openslES/*.c")
 
-    sdl_add_dependency(opensles LIBS ${ANDROID_DL_LIBRARY} OpenSLES)
+    sdl_link_dependency(opensles LIBS ${ANDROID_DL_LIBRARY} OpenSLES)
 
     set(SDL_AUDIO_DRIVER_AAUDIO 1)
     sdl_glob_sources("${SDL3_SOURCE_DIR}/src/audio/aaudio/*.c")
@@ -1263,7 +1263,7 @@ if(ANDROID)
     # Core stuff
     # find_library(ANDROID_DL_LIBRARY dl)
     # FIXME failing dlopen https://github.com/android-ndk/ndk/issues/929
-    sdl_add_dependency(android_video LIBS dl log android)
+    sdl_link_dependency(android_video LIBS dl log android)
     sdl_compile_definitions(PRIVATE "GL_GLEXT_PROTOTYPES")
 
     #enable gles
@@ -1274,7 +1274,7 @@ if(ANDROID)
       set(SDL_VIDEO_OPENGL_ES2 1)
       set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-      sdl_add_dependency(opengles LIBS GLESv1_CM GLESv2)
+      sdl_link_dependency(opengles LIBS GLESv1_CM GLESv2)
     endif()
 
     if(SDL_VULKAN)
@@ -1367,7 +1367,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
     elseif(QNX)
         set(SDL_AUDIO_DRIVER_QNX 1)
         sdl_glob_sources("${SDL3_SOURCE_DIR}/src/audio/qnx/*.c")
-        sdl_add_dependency(asound LIBS asound)
+        sdl_link_dependency(asound LIBS asound)
         set(HAVE_SDL_AUDIO TRUE)
     endif()
     CheckOSS()
@@ -1503,7 +1503,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
         find_package(LibInotify MODULE)
         if(LibInotify_FOUND)
           set(HAVE_INOTIFY 1)
-          sdl_add_dependency(libinotify LIBS LibInotify::LibInotify CMAKE_MODULE LibInotify PKG_CONFIG_SPECS ${LibInotify_PKG_CONFIG_SPEC})
+          sdl_link_dependency(libinotify LIBS LibInotify::LibInotify CMAKE_MODULE LibInotify PKG_CONFIG_SPECS ${LibInotify_PKG_CONFIG_SPEC})
         endif()
       endif()
 
@@ -1589,7 +1589,7 @@ elseif(UNIX AND NOT APPLE AND NOT RISCOS AND NOT HAIKU)
       check_library_exists(rt clock_gettime "" FOUND_CLOCK_GETTIME_LIBRT)
       if(FOUND_CLOCK_GETTIME_LIBRT)
         set(HAVE_CLOCK_GETTIME 1)
-        sdl_add_dependency(clock LIBS rt)
+        sdl_link_dependency(clock LIBS rt)
       endif()
     endif()
   endif()
@@ -1861,11 +1861,11 @@ elseif(WINDOWS)
 
   # Libraries for Win32 native and MinGW
   if(NOT WINDOWS_STORE)
-    sdl_add_dependency(base LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
+    sdl_link_dependency(base LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
   endif()
 
   if(WINDOWS_STORE)
-    sdl_add_dependency(windows
+    sdl_link_dependency(windows
       LIBS
         vccorlib$<$<CONFIG:Debug>:d>.lib
         msvcrt$<$<CONFIG:Debug>:d>.lib
@@ -1922,7 +1922,7 @@ elseif(WINDOWS)
     endif()
     if(HAVE_DINPUT_H)
       set(SDL_JOYSTICK_DINPUT 1)
-      sdl_add_dependency(joystick LIBS dinput8)
+      sdl_link_dependency(joystick LIBS dinput8)
     endif()
     if(HAVE_XINPUT_H)
       if(NOT WINDOWS_STORE)
@@ -2158,71 +2158,71 @@ elseif(APPLE)
 
   # Actually load the frameworks at the end so we don't duplicate include.
   if(SDL_FRAMEWORK_COREVIDEO)
-    sdl_add_dependency(corevideo LINK_OPTIONS "-Wl,-framework,CoreVideo")
+    sdl_link_dependency(corevideo LINK_OPTIONS "-Wl,-framework,CoreVideo")
   endif()
   if(SDL_FRAMEWORK_COCOA)
-    sdl_add_dependency(cocoa LINK_OPTIONS "-Wl,-framework,Cocoa")
+    sdl_link_dependency(cocoa LINK_OPTIONS "-Wl,-framework,Cocoa")
   endif()
   if(SDL_FRAMEWORK_IOKIT)
-    sdl_add_dependency(iokit LINK_OPTIONS "-Wl,-framework,IOKit")
+    sdl_link_dependency(iokit LINK_OPTIONS "-Wl,-framework,IOKit")
   endif()
   if(SDL_FRAMEWORK_FF)
-    sdl_add_dependency(ff LINK_OPTIONS "-Wl,-framework,ForceFeedback")
+    sdl_link_dependency(ff LINK_OPTIONS "-Wl,-framework,ForceFeedback")
   endif()
   if(SDL_FRAMEWORK_CARBON)
-    sdl_add_dependency(carbon LINK_OPTIONS "-Wl,-framework,Carbon")
+    sdl_link_dependency(carbon LINK_OPTIONS "-Wl,-framework,Carbon")
   endif()
   if(SDL_FRAMEWORK_COREAUDIO)
-    sdl_add_dependency(core_audio LINK_OPTIONS "-Wl,-framework,CoreAudio")
+    sdl_link_dependency(core_audio LINK_OPTIONS "-Wl,-framework,CoreAudio")
   endif()
   if(SDL_FRAMEWORK_AUDIOTOOLBOX)
-    sdl_add_dependency(audio_toolbox LINK_OPTIONS "-Wl,-framework,AudioToolbox")
+    sdl_link_dependency(audio_toolbox LINK_OPTIONS "-Wl,-framework,AudioToolbox")
   endif()
   if(SDL_FRAMEWORK_AVFOUNDATION)
-    sdl_add_dependency(av_foundation LINK_OPTIONS "-Wl,-framework,AVFoundation")
+    sdl_link_dependency(av_foundation LINK_OPTIONS "-Wl,-framework,AVFoundation")
   endif()
   if(SDL_FRAMEWORK_COREBLUETOOTH)
-    sdl_add_dependency(core_bluetooth LINK_OPTIONS "-Wl,-framework,CoreBluetooth")
+    sdl_link_dependency(core_bluetooth LINK_OPTIONS "-Wl,-framework,CoreBluetooth")
   endif()
   if(SDL_FRAMEWORK_COREGRAPHICS)
-    sdl_add_dependency(core_graphics LINK_OPTIONS "-Wl,-framework,CoreGraphics")
+    sdl_link_dependency(core_graphics LINK_OPTIONS "-Wl,-framework,CoreGraphics")
   endif()
   if(SDL_FRAMEWORK_COREMOTION)
-    sdl_add_dependency(core_motion LINK_OPTIONS "-Wl,-framework,CoreMotion")
+    sdl_link_dependency(core_motion LINK_OPTIONS "-Wl,-framework,CoreMotion")
   endif()
   if(SDL_FRAMEWORK_FOUNDATION)
-    sdl_add_dependency(foundation LINK_OPTIONS "-Wl,-framework,Foundation")
+    sdl_link_dependency(foundation LINK_OPTIONS "-Wl,-framework,Foundation")
   endif()
   if(SDL_FRAMEWORK_GAMECONTROLLER)
     find_library(GAMECONTROLLER GameController)
     if(GAMECONTROLLER)
-      sdl_add_dependency(game_controller LINK_OPTIONS "-Wl,-weak_framework,GameController")
+      sdl_link_dependency(game_controller LINK_OPTIONS "-Wl,-weak_framework,GameController")
     endif()
   endif()
   if(SDL_FRAMEWORK_METAL)
     if(IOS OR TVOS)
-      sdl_add_dependency(metal LINK_OPTIONS "-Wl,-framework,Metal")
+      sdl_link_dependency(metal LINK_OPTIONS "-Wl,-framework,Metal")
     else()
-      sdl_add_dependency(metal LINK_OPTIONS "-Wl,-weak_framework,Metal")
+      sdl_link_dependency(metal LINK_OPTIONS "-Wl,-weak_framework,Metal")
     endif()
   endif()
   if(SDL_FRAMEWORK_OPENGLES)
-    sdl_add_dependency(opengles LINK_OPTIONS "-Wl,-framework,OpenGLES")
+    sdl_link_dependency(opengles LINK_OPTIONS "-Wl,-framework,OpenGLES")
   endif()
   if(SDL_FRAMEWORK_QUARTZCORE)
     if(IOS OR TVOS)
-      sdl_add_dependency(quartz_core LINK_OPTIONS "-Wl,-framework,QuartzCore")
+      sdl_link_dependency(quartz_core LINK_OPTIONS "-Wl,-framework,QuartzCore")
     else()
-      sdl_add_dependency(metal LINK_OPTIONS "-Wl,-weak_framework,QuartzCore")
+      sdl_link_dependency(metal LINK_OPTIONS "-Wl,-weak_framework,QuartzCore")
     endif()
   endif()
   if(SDL_FRAMEWORK_UIKIT)
-    sdl_add_dependency(ui_kit LINK_OPTIONS "-Wl,-framework,UIKit")
+    sdl_link_dependency(ui_kit LINK_OPTIONS "-Wl,-framework,UIKit")
   endif()
   if(SDL_FRAMEWORK_COREHAPTICS)
     find_library(COREHAPTICS CoreHaptics)
     if(COREHAPTICS)
-      sdl_add_dependency(core_haptics LINK_OPTIONS "-Wl,-framework,CoreHaptics")
+      sdl_link_dependency(core_haptics LINK_OPTIONS "-Wl,-framework,CoreHaptics")
     endif()
   endif()
 
@@ -2256,7 +2256,7 @@ elseif(HAIKU)
       set(SDL_VIDEO_OPENGL 1)
       set(SDL_VIDEO_OPENGL_HAIKU 1)
       set(SDL_VIDEO_RENDER_OGL 1)
-      sdl_add_dependency(opengl LIBS GL)
+      sdl_link_dependency(opengl LIBS GL)
       set(HAVE_OPENGL TRUE)
     endif()
   endif()
@@ -2287,7 +2287,7 @@ elseif(HAIKU)
   sdl_glob_sources("${SDL3_SOURCE_DIR}/src/core/haiku/*.cc")
 
   CheckPTHREAD()
-  sdl_add_dependency(base LIBS root be media game device textencoding)
+  sdl_link_dependency(base LIBS root be media game device textencoding)
 
 elseif(RISCOS)
   if(SDL_MISC)
@@ -2394,7 +2394,7 @@ elseif(VITA)
 
       if(HAVE_PIGS_IN_BLANKET_H)
         set(SDL_VIDEO_OPENGL_ES2 1)
-        sdl_add_dependency(pib
+        sdl_link_dependency(pib
           LIBS
             pib
             libScePiglet_stub_weak
@@ -2418,7 +2418,7 @@ elseif(VITA)
         set(SDL_VIDEO_OPENGL_ES2 1)
         set(SDL_VIDEO_RENDER_OGL_ES2 1)
 
-        sdl_add_dependency(pvr
+        sdl_link_dependency(pvr
           LIBS
             libgpu_es4_ext_stub_weak
             libIMGEGL_stub_weak
@@ -2434,7 +2434,7 @@ elseif(VITA)
             set(HAVE_OPENGL TRUE)
             set(SDL_VIDEO_OPENGL 1)
             set(SDL_VIDEO_RENDER_OGL 1)
-            sdl_add_dependency(opengl LIBS libGL_stub)
+            sdl_link_dependency(opengl LIBS libGL_stub)
             set(SDL_VIDEO_VITA_PVR_OGL 1)
           endif()
         endif()
@@ -2445,7 +2445,7 @@ elseif(VITA)
     endif()
 
     set(SDL_VIDEO_RENDER_VITA_GXM 1)
-    sdl_add_dependency(base
+    sdl_link_dependency(base
       LIBS
         SceGxm_stub
         SceDisplay_stub
@@ -2513,7 +2513,7 @@ elseif(PSP)
     set(SDL_VIDEO_OPENGL 1)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
-  sdl_add_dependency(base
+  sdl_link_dependency(base
     LIBS
       GL
       pspvram
@@ -2575,7 +2575,7 @@ elseif(PS2)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
 
-  sdl_add_dependency(base
+  sdl_link_dependency(base
     LIBS
       patches
       gskit
@@ -3172,7 +3172,7 @@ else()
   set(SDL_SDLtest_INSTALL_RESOURCEDIR ".")
   set(SDL_SDLtest_INSTALL_CMAKEDIR "${SDL_SDL_INSTALL_CMAKEDIR}")
   set(SDL_SDLtest_INSTALL_CMAKEFILENAME "SDL3testTargets.cmake")
-  endif()
+endif()
 
 export(TARGETS SDL3_Headers NAMESPACE "SDL3::" FILE "SDL3headersTargets.cmake")
 
