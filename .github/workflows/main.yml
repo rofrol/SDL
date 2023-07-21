@@ -42,7 +42,6 @@ jobs:
         install: >-
           ${{ matrix.platform.msys-env }}-cc
           ${{ matrix.platform.msys-env }}-cmake
-          ${{ matrix.platform.msys-env }}-git
           ${{ matrix.platform.msys-env }}-ninja
           ${{ matrix.platform.msys-env }}-pkg-config
           ${{ matrix.platform.msys-env }}-python
