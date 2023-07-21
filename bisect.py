@@ -33,7 +33,7 @@ def test_sdl():
         timeouts = re.findall("([a-zA-Z0-9_]+)[ \t.*]+Timeout", txt ,flags=re.I)
         if timeouts:
             print("fimeouts=", timeouts, "(only testlocale and testfilesystem matter)")
-        if any(e in timeouts for e in ("testlocale", "testfilesystem"):
+        if any(e in timeouts for e in ("testlocale", "testfilesystem")):
             print("BAD COMMIT! TIMEOUT detected in", timeouts)
             return COMMIT_BAD_RESULT
         if test_result.returncode != 0:
