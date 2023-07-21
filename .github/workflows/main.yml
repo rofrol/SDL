@@ -85,7 +85,7 @@ jobs:
 
     - run: |
         cp bisect.py /tmp/bisect.py
-        git clone https://github.com/libsdl-org/SDL /tmp/SDL
+        git clone https://github.com/madebr/SDL /tmp/SDL -b ci-clang32
         cd /tmp/SDL
         cp bisect.py /tmp/bisect.py
         git bisect start
