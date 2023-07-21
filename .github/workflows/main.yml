@@ -42,9 +42,10 @@ jobs:
         install: >-
           ${{ matrix.platform.msys-env }}-cc
           ${{ matrix.platform.msys-env }}-cmake
+          ${{ matrix.platform.msys-env }}-git
           ${{ matrix.platform.msys-env }}-ninja
           ${{ matrix.platform.msys-env }}-pkg-config
-          ${{ matrix.platform.msys-env }}-clang-tools-extra
+          ${{ matrix.platform.msys-env }}-python
 
     - name: Setup Linux dependencies
       if: runner.os == 'Linux'
@@ -81,8 +82,20 @@ jobs:
         
         # Install oneAPI
         sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        
+
+    - run: |
+        cp bisect.py /tmp/bisect.py
+        git clone https://github.com/libsdl-org/SDL /tmp/SDL
+        cd /tmp/SDL
+        cp bisect.py /tmp/bisect.py
+        git bisect start
+        git bisect good 14695a714f18729ebcf5f699f236d29513a17f31
+        git bisect bad ef4ce8cec5fb130136ef575e544100ea68193bee
+        git bisect run python /tmp/bisect.py
 
     - uses: actions/checkout@v3
+
     - name: Check that versioning is consistent
       # We only need to run this once: arbitrarily use the Linux/CMake build
       if: "runner.os == 'Linux'"
@@ -98,20 +111,14 @@ jobs:
           -DSDL_WERROR=ON \
           -DSDL_INSTALL_TESTS=ON \
           -DSDL_VENDOR_INFO="Github Workflow" \
-          -DSDL_CLANG_TIDY=ON \
           -DCMAKE_INSTALL_PREFIX=cmake_prefix \
           -DCMAKE_BUILD_TYPE=Release \
           ${{ matrix.platform.cmake }}
+
     - name: Build (CMake)
       run: |
         ${{ matrix.platform.source_cmd }}
         cmake --build build/ --config Release --verbose --parallel
-        
-    - name: Start SSH session
-      uses: luchihoratiu/debug-via-ssh@main
-      with:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-        SSH_PASS: ${{ secrets.SSH_PASS }}
         
 
     - name: Run build-time tests (CMake)
