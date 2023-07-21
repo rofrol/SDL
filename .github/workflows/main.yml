@@ -40,6 +40,7 @@ jobs:
       with:
         msystem: ${{ matrix.platform.msystem }}
         install: >-
+          git
           ${{ matrix.platform.msys-env }}-cc
           ${{ matrix.platform.msys-env }}-cmake
           ${{ matrix.platform.msys-env }}-ninja
