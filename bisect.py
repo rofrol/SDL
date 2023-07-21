@@ -66,6 +66,8 @@ def revert_patch_sdl():
     if ORIGINAL_TXT:
         with open("test/CMakeLists.txt", "w") as f:
             f.write(ORIGINAL_TXT)
+
+    subprocess.run(["git", "reset", "--hard", "HEAD"])
     return COMMIT_GOOD_RESULT
 
 
