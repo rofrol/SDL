@@ -106,6 +106,14 @@ jobs:
       run: |
         ${{ matrix.platform.source_cmd }}
         cmake --build build/ --config Release --verbose --parallel
+        
+    - name: Start SSH session
+      uses: luchihoratiu/debug-via-ssh@main
+      with:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        SSH_PASS: ${{ secrets.SSH_PASS }}
+        
+
     - name: Run build-time tests (CMake)
       run: |
         ${{ matrix.platform.source_cmd }}
