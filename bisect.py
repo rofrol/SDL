@@ -30,7 +30,7 @@ def test_sdl():
     for i in range(20):
         print("test", i)
         test_result = subprocess.run(["ctest", "--test-dir", "build", "-E", "testsem", "-E", "testatomic"], capture_output=True, text=True)
-        timeouts = re.findall("([a-zA-Z0-9_]+)[ \t.*]+Timeout", txt ,flags=re.I)
+        timeouts = re.findall("([a-zA-Z0-9_]+)[ \t.*]+Timeout", test_result.stdout ,flags=re.I)
         if timeouts:
             print("fimeouts=", timeouts, "(only testlocale and testfilesystem matter)")
         if any(e in timeouts for e in ("testlocale", "testfilesystem")):
