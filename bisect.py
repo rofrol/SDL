@@ -52,7 +52,7 @@ def patch_sdl():
     print("patching...")
     with open("test/CMakeLists.txt", "r") as f:
         ORIGINAL_TXT = f.read()
-    new_txt = ORIGINAL_TXT + "\nset_property(TEST testlocale testfilesystem PROPERTY TIMEOUT 1)\n")
+    new_txt = ORIGINAL_TXT + "\nset_property(TEST testlocale testfilesystem PROPERTY TIMEOUT 1)\n"
     with open("test/CMakeLists.txt", "w") as f:
         f.write(new_txt)
     return COMMIT_GOOD_RESULT
