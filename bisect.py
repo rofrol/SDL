@@ -37,8 +37,7 @@ def test_sdl():
             print("BAD COMMIT! TIMEOUT detected in", timeouts)
             return COMMIT_BAD_RESULT
         if test_result.returncode != 0:
-            print("test failed for some reason")
-            return COMMIT_INVALID_RESULT
+            print("A test failed for some reason")
 
     print("all tests good")
     return COMMIT_GOOD_RESULT
@@ -53,12 +52,9 @@ def patch_sdl():
     print("patching...")
     with open("test/CMakeLists.txt", "r") as f:
         ORIGINAL_TXT = f.read()
-    new_txt, count = re.subn(" 10", " 4", ORIGINAL_TXT)
+    new_txt = ORIGINAL_TXT + "\nset_property(TEST testlocale testfilesystem PROPERTY TIMEOUT 1)\n")
     with open("test/CMakeLists.txt", "w") as f:
         f.write(new_txt)
-    if count == 0:
-        print("patch failed")
-        return COMMIT_INVALID_RESULT
     return COMMIT_GOOD_RESULT
 
 
