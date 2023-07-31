@@ -8,6 +8,14 @@
     <TextView
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
+        android:text="Configure SDL_AUDIO_DRIVER" />
+    <Spinner
+        android:id="@+id/sdl_audio_driver_spinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
         android:inputType="textImeMultiLine|textNoSuggestions"
         android:text="@string/label_enter_arguments" />
     <EditText

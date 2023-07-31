@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="sdl_audio_driver">
+        <item>&lt;default&gt;</item>
+        <item>aaudio</item>
+        <item>opensles</item>
+        <item>android</item>
+        <item>disk</item>
+        <item>dummy</item>
+    </string-array>
+</resources>

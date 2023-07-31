@@ -1,23 +1,31 @@
 package @ANDROID_MANIFEST_PACKAGE@;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.os.Bundle;
-import android.util.Log;
-
 import org.libsdl.app.SDL;
 import org.libsdl.app.SDLActivity;
 
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
+import android.app.Activity;
+import android.app.AlertDialog;
+
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+
+import android.os.Bundle;
+
+import android.util.Log;
 
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Spinner;
+import android.widget.Toast;
 
 public class SDLEntryTestActivity extends Activity {
 
@@ -40,6 +48,20 @@ public class SDLEntryTestActivity extends Activity {
         }
     }
 
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.menu, menu);
+//        MenuItem item = menu.findItem(R.id.button_item);
+//        Button btn = item.getActionView().findViewById(R.id.button);
+//        btn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Toast.makeText(SDLEntryTestActivity.this, "Toolbar Button Clicked!", Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//        return true;
+//    }
+
     protected void createArgumentLayout() {
         LayoutInflater inflater = getLayoutInflater();
         View view = inflater.inflate(R.layout.arguments_layout, null);
@@ -51,6 +73,12 @@ public class SDLEntryTestActivity extends Activity {
                 startChildActivityAndFinish();
             }
         });
+
+        Spinner spinner = (Spinner)findViewById(R.id.sdl_audio_driver_spinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+            R.array.sdl_audio_driver, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
     }
 
     protected String[] getArguments() {
@@ -115,6 +143,15 @@ public class SDLEntryTestActivity extends Activity {
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         intent.setClassName("@ANDROID_MANIFEST_PACKAGE@", "@ANDROID_MANIFEST_PACKAGE@.SDLTestActivity");
         intent.putExtra("arguments", getArguments());
+
+        Spinner spinner = (Spinner)findViewById(R.id.sdl_audio_driver_spinner);
+        int audio_driver_index = spinner.getSelectedItemPosition();
+        if (audio_driver_index != 0) {
+            String[] audio_driver_array = getResources().getStringArray(R.array.sdl_audio_driver);
+            String audio_driver = audio_driver_array[audio_driver_index];
+            intent.putExtra("audio_driver", audio_driver);
+        }
+
         startActivity(intent);
         finish();
     }
