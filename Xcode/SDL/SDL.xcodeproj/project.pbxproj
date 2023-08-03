@@ -374,7 +374,7 @@
 		F34B9895291DEFF500AAC96E /* SDL_hidapi_steam.c in Sources */ = {isa = PBXBuildFile; fileRef = A75FDAAC23E2795C00529352 /* SDL_hidapi_steam.c */; };
 		F36C7AD1294BA009004D61C3 /* SDL_runapp.c in Sources */ = {isa = PBXBuildFile; fileRef = F36C7AD0294BA009004D61C3 /* SDL_runapp.c */; };
 		F376F6552559B4E300CFC0BC /* SDL_hidapi.c in Sources */ = {isa = PBXBuildFile; fileRef = A7D8A81423E2513F00DCD162 /* SDL_hidapi.c */; };
-		F37A8E1A28405AA100C38E95 /* CMake in Resources */ = {isa = PBXBuildFile; fileRef = F37A8E1928405AA100C38E95 /* CMake */; };
+		F37A8E1A28405AA100C38E95 /* cmake in Resources */ = {isa = PBXBuildFile; fileRef = F37A8E1928405AA100C38E95 /* cmake */; };
 		F3820713284F3609004DD584 /* controller_type.c in Sources */ = {isa = PBXBuildFile; fileRef = F3820712284F3609004DD584 /* controller_type.c */; };
 		F382071D284F362F004DD584 /* SDL_guid.c in Sources */ = {isa = PBXBuildFile; fileRef = F382071C284F362F004DD584 /* SDL_guid.c */; };
 		F386F6E72884663E001840AA /* SDL_log_c.h in Headers */ = {isa = PBXBuildFile; fileRef = F386F6E42884663E001840AA /* SDL_log_c.h */; };
@@ -858,7 +858,7 @@
 		F376F7212559B74900CFC0BC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		F376F7252559B76800CFC0BC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.0.sdk/System/Library/Frameworks/CoreFoundation.framework; sourceTree = DEVELOPER_DIR; };
 		F376F7272559B77100CFC0BC /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.0.sdk/System/Library/Frameworks/CoreAudio.framework; sourceTree = DEVELOPER_DIR; };
-		F37A8E1928405AA100C38E95 /* CMake */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CMake; sourceTree = "<group>"; };
+		F37A8E1928405AA100C38E95 /* cmake */ = {isa = PBXFileReference; lastKnownFileType = folder; path = cmake; sourceTree = "<group>"; };
 		F37DC5F225350EBC0002E6F7 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
 		F37DC5F425350ECC0002E6F7 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.0.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
 		F3820712284F3609004DD584 /* controller_type.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = controller_type.c; sourceTree = "<group>"; };
@@ -2016,7 +2016,7 @@
 		F59C710100D5CB5801000001 /* resources */ = {
 			isa = PBXGroup;
 			children = (
-				F37A8E1928405AA100C38E95 /* CMake */,
+				F37A8E1928405AA100C38E95 /* cmake */,
 				00794D3F09D0C461003FC8A1 /* License.txt */,
 				F59C710300D5CB5801000001 /* ReadMe.txt */,
 			);
@@ -2326,7 +2326,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F37A8E1A28405AA100C38E95 /* CMake in Resources */,
+				F37A8E1A28405AA100C38E95 /* cmake in Resources */,
 				A75FDBB823E4CBC700529352 /* ReadMe.txt in Resources */,
 				A75FDBB723E4CBC700529352 /* License.txt in Resources */,
 			);
@@ -2351,7 +2351,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "mkdir -p build/dmg-tmp\ncp -a build/SDL3.xcframework build/dmg-tmp/\n\ncp pkg-support/resources/License.txt build/dmg-tmp\ncp pkg-support/resources/ReadMe.txt build/dmg-tmp\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nfind build/dmg-tmp -name .DS_Store -exec rm -f \"{}\" \\;\n\n# for fancy .dmg\nmkdir -p build/dmg-tmp/.logo\ncp pkg-support/resources/SDL_DS_Store build/dmg-tmp/.DS_Store\ncp pkg-support/sdl_logo.pdf build/dmg-tmp/.logo\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname SDL3 -srcfolder build/dmg-tmp build/SDL3.dmg\n\n# clean up\nrm -rf build/dmg-tmp\n";
+			shellScript = "STAGING=build/staging\nrm -rf $STAGING\nmkdir -p $STAGING\ncp -a build/SDL3.xcframework $STAGING\n\ncp pkg-support/resources/License.txt $STAGING\ncp pkg-support/resources/ReadMe.txt $STAGING\n\nmkdir -p $STAGING/share\ncp -a pkg-support/resources/cmake $STAGING/share/\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nfind $STAGING -name .DS_Store -exec rm -f \"{}\" \\;\n\n# for fancy .dmg\nmkdir -p $STAGING/.logo\ncp pkg-support/resources/SDL_DS_Store $STAGING/.DS_Store\ncp pkg-support/sdl_logo.pdf $STAGING/.logo\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname SDL3 -srcfolder $STAGING build/SDL3.dmg\n\n# clean up\n#rm -rf $STAGING\n";
 		};
 		F3B38CF0296F63D1005DA6D3 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
