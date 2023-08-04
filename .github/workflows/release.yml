@@ -15,6 +15,7 @@ jobs:
     outputs:
       project: ${{ steps.releaser.outputs.project }}
       version: ${{ steps.releaser.outputs.version }}
+      bare-project: ${{ steps.releaser.outputs.bare-project }}
       src-tar-gz: ${{ steps.releaser.outputs.src-tar-gz }}
       src-zip: ${{ steps.releaser.outputs.src-zip }}
     steps:
@@ -50,6 +51,7 @@ jobs:
 
   msvc:
     runs-on: windows-2019
+    needs: [src]
     outputs:
       VC-x86: ${{ steps.releaser.outputs.VC-x86 }}
       VC-x64: ${{ steps.releaser.outputs.VC-x64 }}
@@ -63,20 +65,27 @@ jobs:
       uses: actions/checkout@v3
       with:
         sparse-checkout: 'build-scripts/releaser.py'
-    - name: 'Set up SDL sources'
-      uses: actions/checkout@v3
+    - name: 'Download source archives'
+      uses: actions/download-artifact@v3
       with:
-        path: 'SDL'
-        ref: ${{ inputs.commit }}
+        name: sources
+        path: '${{ github.workspace }}'
+    - name: 'Unzip ${{ needs.src.outputs.src-zip }}'
+      id: src
+      run: |
+        mkdir '${{ github.workspace }}/sources'
+        cd '${{ github.workspace }}/sources'
+        unzip "${{ github.workspace }}/${{ needs.src.outputs.src-zip }}"
+        echo "path=${{ github.workspace }}/sources/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$env:GITHUB_OUTPUT
     - name: 'Build MSVC binary archives'
       id: releaser
       run: |
-        python build-scripts/releaser.py        `
-          --create win32                        `
-          --commit ${{ inputs.commit }}         `
-          --project SDL3                        `
-          --root "${{ github.workspace }}/SDL"  `
-          --github                              `
+        python build-scripts/releaser.py              `
+          --create win32                              `
+          --commit ${{ inputs.commit }}               `
+          --project SDL3                              `
+          --root "${{ steps.src.outputs.path }}/SDL"  `
+          --github                                    `
           --debug
     - name: 'Store MSVC archives'
       uses: actions/upload-artifact@v3
@@ -84,8 +93,58 @@ jobs:
         name: win32
         path: '${{ github.workspace}}/dist'
 
+  msvc-verify:
+    needs: [msvc, src]
+    runs-on: windows-latest
+    steps:
+      - name: 'Download source archives'
+        uses: actions/download-artifact@v3
+        with:
+          name: sources
+          path: '${{ github.workspace }}'
+      - name: 'Unzip ${{ needs.src.outputs.src-zip }}'
+        id: src
+        run: |
+          mkdir '${{ github.workspace }}/sources'
+          cd '${{ github.workspace }}/sources'
+          unzip "${{ github.workspace }}/${{ needs.src.outputs.src-zip }}"
+          echo "path=${{ github.workspace }}/sources/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$env:GITHUB_OUTPUT
+      - name: 'Download MSVC binaries'
+        uses: actions/download-artifact@v3
+        with:
+          name: win32
+          path: '${{ github.workspace }}'
+      - name: 'Unzip ${{ needs.msvc.outputs.VC-devel }}'
+        id: bin
+        run: |
+          mkdir '${{ github.workspace }}/vc'
+          cd '${{ github.workspace }}/vc'
+          unzip "${{ github.workspace }}/${{ needs.msvc.outputs.VC-devel }}"
+          echo "path=${{ github.workspace }}/vc/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$env:GITHUB_OUTPUT
+      - name: 'CMake (configure + build + tests) x86'
+        run: |
+          $env:PATH += ";${{ steps.bin.outputs.path }}/x86"
+          cmake -S "${{ steps.src.outputs.path }}/cmake/test"     `
+              -DTEST_FULL=TRUE                                    `
+              -DTEST_STATIC=FALSE                                 `
+              -DCMAKE_PREFIX_PATH="${{ steps.bin.outputs.path }}" `
+              -B build_x86 -A win32
+          cmake --build build_x86 --config Release --verbose
+          ctest --test-dir build_x86 --no-tests=error -C Release --output-on-failure
+      - name: 'CMake (configure + build + tests) x64'
+        run: |
+          $env:PATH += ";${{ steps.bin.outputs.path }}/x86"
+          cmake -S "${{ steps.src.outputs.path }}/cmake/test"     `
+              -DTEST_FULL=TRUE                                    `
+              -DTEST_STATIC=FALSE                                 `
+              -DCMAKE_PREFIX_PATH="${{ steps.bin.outputs.path }}" `
+              -B build_x64 -A x64
+          cmake --build build_x64 --config Release --verbose
+          ctest --test-dir build_x64 --no-tests=error -C Release --output-on-failure
+
   dmg:
     runs-on: macos-latest
+    needs: [src]
     outputs:
       dmg: ${{ steps.releaser.outputs.dmg }}
     steps:
@@ -97,11 +156,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           sparse-checkout: 'build-scripts/releaser.py'
-      - name: 'Set up SDL sources'
-        uses: actions/checkout@v3
+      - name: 'Download source archives'
+        uses: actions/download-artifact@v3
         with:
-          path: 'SDL'
-          ref: ${{ inputs.commit }}
+          name: sources
+          path: '${{ github.workspace }}'
+      - name: 'Untar ${{ needs.src.outputs.src-tar-gz }}'
+        id: src
+        run: |
+          mkdir '${{ github.workspace }}/sources'
+          tar -C '${{ github.workspace }}/sources' -v -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-gz }}"
+          echo "path=${{ github.workspace }}/sources/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$env:GITHUB_OUTPUT
       - name: 'Build SDL3.dmg'
         id: releaser
         shell: bash
@@ -110,7 +175,7 @@ jobs:
             --create xcframework \
             --commit ${{ inputs.commit }} \
             --project SDL3 \
-            --root "${{ github.workspace }}/SDL" \
+            --root "${{ steps.src.outputs.path }}/SDL" \
             --github \
             --debug
       - name: 'Store DMG image file'
@@ -153,55 +218,6 @@ jobs:
           cmake -S ${{ steps.tar.outputs.path }} -B /tmp/build -DSDL_TEST_LIBRARY=TRUE -DSDL_TESTS=TRUE
           cmake --build /tmp/build --verbose
           ctest --test-dir /tmp/build --no-tests=error --output-on-failure
-
-  msvc-verify:
-    needs: [msvc, src]
-    runs-on: windows-latest
-    steps:
-      - name: 'Download source archives'
-        uses: actions/download-artifact@v3
-        with:
-          name: sources
-          path: '${{ github.workspace }}'
-      - name: 'Download MSVC binaries'
-        uses: actions/download-artifact@v3
-        with:
-          name: win32
-          path: '${{ github.workspace }}'
-      - name: 'Unzip ${{ needs.src.outputs.src-zip }}'
-        id: src
-        run: |
-          mkdir '${{ github.workspace }}/sources'
-          cd '${{ github.workspace }}/sources'
-          unzip "${{ github.workspace }}/${{ needs.src.outputs.src-zip }}"
-          echo "path=${{ github.workspace }}/sources/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$env:GITHUB_OUTPUT
-      - name: 'Unzip ${{ needs.msvc.outputs.VC-devel }}'
-        id: bin
-        run: |
-          mkdir '${{ github.workspace }}/vc'
-          cd '${{ github.workspace }}/vc'
-          unzip "${{ github.workspace }}/${{ needs.msvc.outputs.VC-devel }}"
-          echo "path=${{ github.workspace }}/vc/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$env:GITHUB_OUTPUT
-      - name: 'CMake (configure + build + tests) x86'
-        run: |
-          $env:PATH += ";${{ steps.bin.outputs.path }}/x86"
-          cmake -S "${{ steps.src.outputs.path }}/cmake/test"     `
-              -DTEST_FULL=TRUE                                    `
-              -DTEST_STATIC=FALSE                                 `
-              -DCMAKE_PREFIX_PATH="${{ steps.bin.outputs.path }}" `
-              -B build_x86 -A win32
-          cmake --build build_x86 --config Release --verbose
-          ctest --test-dir build_x86 --no-tests=error -C Release --output-on-failure
-      - name: 'CMake (configure + build + tests) x64'
-        run: |
-          $env:PATH += ";${{ steps.bin.outputs.path }}/x86"
-          cmake -S "${{ steps.src.outputs.path }}/cmake/test"     `
-              -DTEST_FULL=TRUE                                    `
-              -DTEST_STATIC=FALSE                                 `
-              -DCMAKE_PREFIX_PATH="${{ steps.bin.outputs.path }}" `
-              -B build_x64 -A x64
-          cmake --build build_x64 --config Release --verbose
-          ctest --test-dir build_x64 --no-tests=error -C Release --output-on-failure
 
   macos-verify:
     needs: [dmg, src]

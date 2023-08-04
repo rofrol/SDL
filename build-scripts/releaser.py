@@ -125,15 +125,15 @@ class VisualStudio:
 
 
 class Releaser:
-    def __init__(self, project: str, commit: str, root: Path, dist_path: Path, section_printer: SectionPrinter, executer=Executer):
-        self.project = project
-        self.version = self.extract_sdl_version(root=root, project=project)
+    def __init__(self, root: Path, commit: str, dist_path: Path, section_printer: SectionPrinter, executer=Executer):
         self.root = root
+        self.project = self.extract_project_name(root=root)
+        self.bare_project = re.sub("[0-9]", "", self.project)
+        self.version = self.extract_sdl_version(root=root, project=self.project, bare_project=self.bare_project)
         self.commit = commit
         self.dist_path = dist_path
         self.section_printer = section_printer
         self.executer = executer
-
         self.artifacts = {}
 
     @property
@@ -167,7 +167,7 @@ class Releaser:
     def create_xcframework(self, configuration:str="Release"):
         dmg_in = self.root / f"Xcode/SDL/build/SDL3.dmg"
         dmg_in.unlink(missing_ok=True)
-        self.executer.run(["xcodebuild", "-project", self.root / "Xcode/SDL/SDL.xcodeproj", "-target", "SDL3.dmg", "-configuration", configuration])
+        self.executer.run(["xcodebuild", "-project", self.root / "Xcode/SDL/SDL.xcodeproj", "-target", f"{self.project}.dmg", "-configuration", configuration])
         if self.dry:
             dmg_in.parent.mkdir(parents=True, exist_ok=True)
             dmg_in.touch()
@@ -179,8 +179,8 @@ class Releaser:
         self.artifacts["dmg"] = dmg_out
 
     def build_vs(self, arch: str, platform: str, vs: VisualStudio, configuration: str="Release"):
-        dll_path = self.root / f"VisualC/SDL/{platform}/{configuration}/{self.project}.dll"
-        imp_path = self.root / f"VisualC/SDL/{platform}/{configuration}/{self.project}.lib"
+        dll_path = self.root / f"VisualC/{self.bare_project}/{platform}/{configuration}/{self.project}.dll"
+        imp_path = self.root / f"VisualC/{self.bare_project}/{platform}/{configuration}/{self.project}.lib"
         test_path = self.root / f"VisualC/SDL_test/{platform}/{configuration}/{self.project}_test.lib"
 
         dll_path.unlink(missing_ok=True)
@@ -250,13 +250,24 @@ class Releaser:
         self.artifacts["VC-devel"] = zip_path
 
     @classmethod
-    def extract_sdl_version(cls, root: Path, project: str):
-        with open(root / f"include/{project}/SDL_version.h", "r") as f:
+    def extract_sdl_version(cls, root: Path, project: str, bare_project: str) -> str:
+        version_path = root / f"include/{project}/{bare_project}_version.h"
+        if not version_path.exists():
+            version_path = root / f"include/{project}/{bare_project}.h"
+        logger.debug("Extracting version from %s", version_path)
+
+        with version_path.open() as f:
             text = f.read()
-        major = next(re.finditer(r"^#define SDL_MAJOR_VERSION\s+([0-9]+)$", text, flags=re.M)).group(1)
-        minor = next(re.finditer(r"^#define SDL_MINOR_VERSION\s+([0-9]+)$", text, flags=re.M)).group(1)
-        patch = next(re.finditer(r"^#define SDL_PATCHLEVEL\s+([0-9]+)$", text, flags=re.M)).group(1)
+
+        major = next(re.finditer(rf"^#define {bare_project.upper()}_MAJOR_VERSION\s+([0-9]+)$", text, flags=re.M)).group(1)
+        minor = next(re.finditer(rf"^#define {bare_project.upper()}_MINOR_VERSION\s+([0-9]+)$", text, flags=re.M)).group(1)
+        patch = next(re.finditer(rf"^#define {bare_project.upper()}_PATCHLEVEL\s+([0-9]+)$", text, flags=re.M)).group(1)
         return f"{major}.{minor}.{patch}"
+
+    @classmethod
+    def extract_project_name(cls, root: Path) -> str:
+        text = (root / "CMakeLists.txt").open().read()
+        return next(re.finditer(r"^project\(([A-Z0-9_]+)\s", text, flags=re.M)).group(1)
 
 
 def main(argv=None):
@@ -265,7 +276,6 @@ def main(argv=None):
     parser.add_argument("--out", "-o", metavar="DIR", dest="dist_path", type=Path, default="dist", help="Output directory")
     parser.add_argument("--github", action="store_true", help="Script is running on a GitHub runner")
     parser.add_argument("--commit", default="HEAD", help="Git commit/tag of which a release should be created")
-    parser.add_argument("--project", required=True, help="Name of the project")
     parser.add_argument("--create", choices=["source", "win32", "xcframework"], required=True,action="append", dest="actions", help="SDL version")
     parser.set_defaults(loglevel=logging.INFO)
     parser.add_argument('--vs-year', dest="vs_year", help="Visual Studio year")
@@ -288,16 +298,16 @@ def main(argv=None):
 
     executer = Executer(root=args.root, dry=args.dry)
 
-    releaser = Releaser(project=args.project, commit=args.commit, root=args.root, dist_path=args.dist_path, executer=executer, section_printer=section_printer)
+    releaser = Releaser(commit=args.commit, root=args.root, dist_path=args.dist_path, executer=executer, section_printer=section_printer)
 
     with section_printer.group("Arguments"):
-        print(f"project = {args.project}")
-        print(f"version = {releaser.version}")
-        print(f"commit  = {args.commit}")
-        print(f"out     = {args.dist_path}")
-        print(f"actions = {args.actions}")
-        print(f"dry     = {args.dry}")
-        print(f"version = {args.dry}")
+        print(f"project         = {releaser.project}")
+        print(f"version         = {releaser.version}")
+        print(f"bare-project    = {releaser.bare_project}")
+        print(f"commit          = {args.commit}")
+        print(f"out             = {args.dist_path}")
+        print(f"actions         = {','.join(args.actions)}")
+        print(f"dry             = {args.dry}")
 
     releaser.prepare()
 
@@ -332,10 +342,11 @@ def main(argv=None):
 
     if args.github:
         if args.dry:
-            os.environ["GITHUB_OUTPUT"] = "/tmp/github_output.txt"
+            os.environ["GITHUB_OUTPUT"] = str(args.dist_path / "github_output.txt")
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"project={releaser.project}\n")
             f.write(f"version={releaser.version}\n")
+            f.write(f"bare-project={releaser.bare_project}\n")
             for k, v in releaser.artifacts.items():
                 f.write(f"{k}={v.name}\n")
     return 0
