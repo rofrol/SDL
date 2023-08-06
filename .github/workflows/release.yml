@@ -1,5 +1,5 @@
 name: 'release'
-run-name: 'Create SDL release artifacts for ${{ inputs.commit }}'
+run-name: 'Create ${{ inputs.repo }} release artifacts for ${{ inputs.commit }}'
 
 on:
   workflow_dispatch:
@@ -7,6 +7,15 @@ on:
       commit:
         description: 'Commit of SDL'
         required: true
+      repo:
+        description: 'SDL repo (SDL/SDL_image/SDL_mixer/SDL_ttf)'
+        required: true
+        type: choice
+        options:
+          - SDL
+          - SDL_image
+          - SDL_mixer
+          - SDL_ttf
 
 jobs:
 
@@ -16,7 +25,7 @@ jobs:
       project: ${{ steps.releaser.outputs.project }}
       version: ${{ steps.releaser.outputs.version }}
       bare-project: ${{ steps.releaser.outputs.bare-project }}
-      src-tar-gz: ${{ steps.releaser.outputs.src-tar-gz }}
+      src-tar-xz: ${{ steps.releaser.outputs.src-tar-xz }}
       src-zip: ${{ steps.releaser.outputs.src-zip }}
     steps:
       - name: 'Set up Python'
@@ -27,10 +36,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           sparse-checkout: 'build-scripts/releaser.py'
-      - name: 'Set up SDL sources'
+      - name: 'Set up ${{ inputs.repo }} sources'
         uses: actions/checkout@v3
         with:
-          path: 'SDL'
+          repository: 'libsdl-org/${{ inputs.repo }}'
+          path: '${{ inputs.repo }}'
           ref: ${{ inputs.commit }}
       - name: 'Build Source archive'
         id: releaser
@@ -39,8 +49,7 @@ jobs:
           python build-scripts/releaser.py \
             --create source \
             --commit ${{ inputs.commit }} \
-            --project SDL3 \
-            --root "${{ github.workspace }}/SDL" \
+            --root "${{ github.workspace }}/${{ inputs.repo }}" \
             --github \
             --debug
       - name: 'Store source archives'
@@ -83,8 +92,7 @@ jobs:
         python build-scripts/releaser.py              `
           --create win32                              `
           --commit ${{ inputs.commit }}               `
-          --project SDL3                              `
-          --root "${{ steps.src.outputs.path }}/SDL"  `
+          --root "${{ steps.src.outputs.path }}"  `
           --github                                    `
           --debug
     - name: 'Store MSVC archives'
@@ -161,22 +169,21 @@ jobs:
         with:
           name: sources
           path: '${{ github.workspace }}'
-      - name: 'Untar ${{ needs.src.outputs.src-tar-gz }}'
+      - name: 'Untar ${{ needs.src.outputs.src-tar-xz }}'
         id: src
         run: |
           mkdir '${{ github.workspace }}/sources'
-          tar -C '${{ github.workspace }}/sources' -v -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-gz }}"
+          tar -C '${{ github.workspace }}/sources' -v -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-xz }}"
           echo "path=${{ github.workspace }}/sources/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$env:GITHUB_OUTPUT
-      - name: 'Build SDL3.dmg'
+      - name: 'Build ${{ needs.src.outputs.project }}.dmg'
         id: releaser
         shell: bash
         run: |
-          python build-scripts/releaser.py \
-            --create xcframework \
-            --commit ${{ inputs.commit }} \
-            --project SDL3 \
-            --root "${{ steps.src.outputs.path }}/SDL" \
-            --github \
+          python build-scripts/releaser.py              \
+            --create xcframework                        \
+            --commit ${{ inputs.commit }}               \
+            --root "${{ steps.src.outputs.path }}"  \
+            --github                                    \
             --debug
       - name: 'Store DMG image file'
         uses: actions/upload-artifact@v3
@@ -200,13 +207,13 @@ jobs:
           cd /tmp/zipdir
           unzip "${{ github.workspace }}/${{ needs.src.outputs.src-zip }}"
           echo "path=/tmp/zipdir/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$GITHUB_OUTPUT
-      - name: 'Untar ${{ needs.src.outputs.src-tar-gz }}'
+      - name: 'Untar ${{ needs.src.outputs.src-tar-xz }}'
         id: tar
         run: |
           mkdir -p /tmp/tardir
-          tar -C /tmp/tardir -v -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-gz }}"
+          tar -C /tmp/tardir -v -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-xz }}"
           echo "path=/tmp/tardir/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$GITHUB_OUTPUT
-      - name: 'Compare contents of ${{ needs.src.outputs.src-zip }} and  ${{ needs.src.outputs.src-tar-gz }}'
+      - name: 'Compare contents of ${{ needs.src.outputs.src-zip }} and  ${{ needs.src.outputs.src-tar-xz }}'
         run: |
           diff /tmp/zipdir /tmp/tardir
       - name: 'Test versioning'
@@ -233,11 +240,11 @@ jobs:
         with:
           name: dmg
           path: '${{ github.workspace }}'
-      - name: 'Untar ${{ needs.src.outputs.src-tar-gz }}'
+      - name: 'Untar ${{ needs.src.outputs.src-tar-xz }}'
         id: src
         run: |
           mkdir -p /tmp/tardir
-          tar -C /tmp/tardir -v -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-gz }}"
+          tar -C /tmp/tardir -v -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-xz }}"
           echo "path=/tmp/tardir/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >>$GITHUB_OUTPUT
       - name: 'Mount ${{ needs.dmg.outputs.dmg }}'
         id: mount

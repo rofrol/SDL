@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import textwrap
 import typing
@@ -20,7 +21,7 @@ import zipfile
 logger = logging.getLogger(__name__)
 
 
-VcArchDevel = collections.namedtuple("VcArchDevel", ("dll", "imp", "test"))
+VcArchDevel = collections.namedtuple("VcArchDevel", ("dll", "dev"))
 
 
 class Executer:
@@ -146,76 +147,137 @@ class Releaser:
 
     def _git_archive(self, out: Path):
         out.unlink(missing_ok=True)
-        self.executer.run(["git", "archive", self.commit, "--prefix", f"{self.project}-{self.version}/", ":!.git*", "-o", out], force=True)
+        self.executer.run(["git", "archive", self.commit, "--prefix", f"{self.project}-{self.version}/", "-o", out], force=True)
         if self.dry:
             out.touch(exist_ok=True)
         assert out.is_file(), "Source archive has not been created"
 
     def create_source_archives(self):
         archive_base = f"{self.project}-{self.version}"
+        temp_tar_gz = Path(tempfile.gettempdir()) / f"{archive_base}-temp.tar.gz"
+
+        logger.debug("Running git archive to create a temporary tar.gz source archive (%s)...", temp_tar_gz)
+        self._git_archive(out=temp_tar_gz)
+
+        def file_filter(member: tarfile.TarInfo, path: str, /) -> tarfile.TarInfo | None:
+            name_path = Path(member.name)
+            if name_path.name == ".gitignore":
+                logger.debug("Removing %s from source archives", member.name)
+                return None
+            if any(e == ".github" for e in name_path.parts):
+                logger.debug("Removing %s from source archives", member.name)
+                return None
+            if any(".xcframework" in e or ".framework" in e for e in name_path.parts):
+                logger.debug("Removing %s from source archives", member.name)
+                return None
+            return member
+
+        temp_extract = Path(tempfile.gettempdir()) / f"{archive_base}-temp"
+        shutil.rmtree(temp_extract, ignore_errors=True)
+        temp_extract.mkdir(parents=True)
+
+        if not self.dry:
+            logger.debug("Extracting source git archive to temporary directory for filtering (%s)", temp_extract)
+            tf = tarfile.open(temp_tar_gz, mode="r:gz")
+            tf.extractall(temp_extract, filter=file_filter)
+
+        tar_xz = self.dist_path / f"{archive_base}.tar.gz"
+        logger.debug("Creating tar.xz source archive (%s)...", tar_xz)
+        with tarfile.open(tar_xz, mode="w:xz") as tf:
+            tf.add(temp_extract / archive_base, arcname=archive_base)
+        self.artifacts["src-tar-xz"] = tar_xz
 
         zip = self.dist_path / f"{archive_base}.zip"
         logger.debug("Creating zip source archive (%s)...", zip)
-        self._git_archive(out=zip)
+        with zipfile.ZipFile(zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(temp_extract):
+                root = Path(root)
+                rel_root = root.relative_to(temp_extract)
+                for dir in dirs:
+                    zf.mkdir(str(rel_root / dir))
+                for file in files:
+                    zf.write(root / file, arcname=rel_root / file)
+
         self.artifacts["src-zip"] = zip
 
-        tar_gz = self.dist_path / f"{archive_base}.tar.gz"
-        logger.debug("Creating tar.gz source archive (%s)...", tar_gz)
-        self._git_archive(out=tar_gz)
-        self.artifacts["src-tar-gz"] = tar_gz
-
     def create_xcframework(self, configuration:str="Release"):
-        dmg_in = self.root / f"Xcode/SDL/build/SDL3.dmg"
+        dmg_in = self.root / f"Xcode/SDL/build/{self.project}.dmg"
         dmg_in.unlink(missing_ok=True)
-        self.executer.run(["xcodebuild", "-project", self.root / "Xcode/SDL/SDL.xcodeproj", "-target", f"{self.project}.dmg", "-configuration", configuration])
+        self.executer.run(["xcodebuild", "-project", self.root / f"Xcode/{self.bare_project}/{self.bare_project}.xcodeproj", "-target", f"{self.project}.dmg", "-configuration", configuration])
         if self.dry:
             dmg_in.parent.mkdir(parents=True, exist_ok=True)
             dmg_in.touch()
 
-        assert dmg_in.is_file(), "SDL3.dmg was not created by xcodebuild"
+        assert dmg_in.is_file(), f"{self.project} was not created by xcodebuild"
 
         dmg_out = self.dist_path / f"{self.project}-{self.version}.dmg"
         shutil.copy(dmg_in, dmg_out)
         self.artifacts["dmg"] = dmg_out
 
     def build_vs(self, arch: str, platform: str, vs: VisualStudio, configuration: str="Release"):
-        dll_path = self.root / f"VisualC/{self.bare_project}/{platform}/{configuration}/{self.project}.dll"
-        imp_path = self.root / f"VisualC/{self.bare_project}/{platform}/{configuration}/{self.project}.lib"
-        test_path = self.root / f"VisualC/SDL_test/{platform}/{configuration}/{self.project}_test.lib"
+        solution_path = self.root / f"VisualC/{self.bare_project}.sln"
+        assert solution_path.exists(), f"Cannot find {self.bare_project}.sln"
 
-        dll_path.unlink(missing_ok=True)
-        imp_path.unlink(missing_ok=True)
-        test_path.unlink(missing_ok=True)
-
+        main_project = solution_path.parent / f"{self.bare_project}.vcxproj"
+        if not main_project.is_file():
+            main_project = solution_path.parent / f"{self.bare_project}/{self.bare_project}.vcxproj"
+        assert main_project.is_file(), f"Cannot find {self.bare_project}.vcxproj"
         projects = [
-            self.root / "VisualC/SDL/SDL.vcxproj",
-            self.root / "VisualC/SDL_test/SDL_test.vcxproj",
+            main_project,
         ]
+        dll_artifacts = [
+            solution_path.parent / f"{platform}/{configuration}/{self.project}.dll",
+        ]
+        dev_artifacts = [
+            solution_path.parent / f"{platform}/{configuration}/{self.project}.lib",
+        ]
+
+        test_project = self.root / f"VisualC/{self.bare_project}_test/{self.bare_project}_test.vcxproj"
+        if test_project.is_file():
+            projects.append(projects)
+            dev_artifacts.append(solution_path.parent / f"{platform}/{configuration}/{self.project}_test.lib")
+
+        artifacts = dll_artifacts + dev_artifacts
+
+        for artifact in artifacts:
+            artifact.unlink(missing_ok=True)
 
         vs.build(arch=arch, platform=platform, configuration=configuration, projects=projects)
 
         if self.dry:
-            dll_path.parent.mkdir(parents=True, exist_ok=True)
-            dll_path.touch()
-            imp_path.touch()
-            test_path.parent.mkdir(parents=True, exist_ok=True)
-            test_path.touch()
+            for artifact in artifacts:
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.touch()
 
-        assert dll_path.is_file(), "SDL3.dll has not been created"
-        assert imp_path.is_file(), "SDL3.lib has not been created"
-        assert test_path.is_file(), "SDL3_test.lib has not been created"
+        for artifact in artifacts:
+            assert artifact.is_file(), f"{artifact.name} has not been created"
 
         zip_path = self.dist_path / f"{self.project}-{self.version}-win32-{arch}.zip"
         zip_path.unlink(missing_ok=True)
         logger.info("Creating %s", zip_path)
         with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-            logger.debug("Adding %s", dll_path.name)
-            zf.write(dll_path, arcname=dll_path.name)
-            logger.debug("Adding %s", "README-SDL.txt")
-            zf.write(self.root / "README-SDL.txt", arcname="README-SDL.txt")
+            for dll in dll_artifacts:
+                logger.debug("Adding %s", dll.name)
+                zf.write(dll, arcname=dll.name)
+
+            optionals = self.root / f"VisualC/external/optional/{arch}"
+            if optionals.is_dir():
+                for opt in optionals.iterdir():
+                    logger.debug("Adding %s to optional/%s", opt, opt.name)
+                    zf.write(opt, arcname=f"optional/{opt.name}")
+
+            for readme in ("README-SDL.txt", "README.txt"):
+                readme_path = self.root / readme
+                if readme_path.is_file():
+                    logger.debug("Adding %s", readme)
+                    zf.write(readme_path, arcname=readme_path.name)
+                    break
+            if not readme_path.is_file():
+                assert readme_path.is_file(), "Cannot find a readme text file"
+
         self.artifacts[f"VC-{arch}"] = zip_path
 
-        return VcArchDevel(dll=dll_path, imp=imp_path, test=test_path)
+        return VcArchDevel(dll=dll_artifacts, dev=dev_artifacts)
 
     def build_vs_devel(self, arch_vc: dict[str, VcArchDevel]):
         zip_path = self.dist_path / f"{self.project}-devel-{self.version}-VC.zip"
@@ -235,19 +297,37 @@ class Releaser:
 
         with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
             for arch, binaries in arch_vc.items():
-                zip_file(zf, path=binaries.dll, arcrelpath=f"lib/{arch}/{binaries.dll.name}")
-                zip_file(zf, path=binaries.imp, arcrelpath=f"lib/{arch}/{binaries.imp.name}")
-                zip_file(zf, path=binaries.test, arcrelpath=f"lib/{arch}/{binaries.test.name}")
+                for dll in binaries.dll:
+                    zip_file(zf, path=dll, arcrelpath=f"lib/{arch}/{dll.name}")
+                for lib in binaries.dev:
+                    zip_file(zf, path=lib, arcrelpath=f"lib/{arch}/{lib.name}")
 
-            zip_directory(zf, directory=self.root / "include/SDL3", arcrelpath="include/SDL3")
+                optionals = self.root / f"VisualC/external/optional/{arch}"
+                if optionals.is_dir():
+                    for opt in optionals.iterdir():
+                        zip_file(zf, path=opt, arcrelpath=f"lib/{arch}/optional/{opt.name}")
+
+            zip_directory(zf, directory=self.root / f"include/{self.project}", arcrelpath=f"include/{self.project}")
             zip_directory(zf, directory=self.root / "docs", arcrelpath="docs")
             zip_directory(zf, directory=self.root / "VisualC/pkg-support/cmake", arcrelpath="cmake")
 
-            for txt in ("BUGS.txt", "README-SDL.txt", "WhatsNew.txt"):
-                zip_file(zf, path=self.root / txt, arcrelpath=txt)
-            zip_file(zf, path=self.root / "LICENSE.txt", arcrelpath="COPYING.txt")
-            zip_file(zf, path=self.root / "README.md", arcrelpath="README.txt")
+            for txt in ("BUGS.txt", "README-SDL.txt", "WhatsNew.txt", "LICENSE.txt", "CHANGES.txt"):
+                txt_path = self.root / txt
+                if txt_path.is_file():
+                    zip_file(zf, path=txt_path, arcrelpath=txt_path.name)
+            for readme in ("README.md", "README.txt"):
+                readme_path = self.root / readme
+                if readme_path.is_file():
+                    zip_file(zf, path=readme_path, arcrelpath=readme_path.name)
+                    break
+            assert readme_path.is_file(), "Could not find readme text file"
+
         self.artifacts["VC-devel"] = zip_path
+
+    @classmethod
+    def extract_project_name(cls, root: Path) -> str:
+        text = (root / "CMakeLists.txt").open().read()
+        return next(re.finditer(r"^project\(([A-Za-z0-9_]+)\s", text, flags=re.M)).group(1)
 
     @classmethod
     def extract_sdl_version(cls, root: Path, project: str, bare_project: str) -> str:
@@ -263,11 +343,6 @@ class Releaser:
         minor = next(re.finditer(rf"^#define {bare_project.upper()}_MINOR_VERSION\s+([0-9]+)$", text, flags=re.M)).group(1)
         patch = next(re.finditer(rf"^#define {bare_project.upper()}_PATCHLEVEL\s+([0-9]+)$", text, flags=re.M)).group(1)
         return f"{major}.{minor}.{patch}"
-
-    @classmethod
-    def extract_project_name(cls, root: Path) -> str:
-        text = (root / "CMakeLists.txt").open().read()
-        return next(re.finditer(r"^project\(([A-Z0-9_]+)\s", text, flags=re.M)).group(1)
 
 
 def main(argv=None):
@@ -341,7 +416,8 @@ def main(argv=None):
         print(f"artifacts = {releaser.artifacts}")
 
     if args.github:
-        if args.dry:
+        if not "GITHUB_OUTPUT" in os.environ:
+            logger.warning("GITHUB_OUTPUT environment variable not set! Setting dummy variable.")
             os.environ["GITHUB_OUTPUT"] = str(args.dist_path / "github_output.txt")
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"project={releaser.project}\n")
