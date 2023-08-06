@@ -10,6 +10,7 @@ set(_sdl3_version_h "${_sdl3_xcframework}/macos-arm64_x86_64/SDL3.framework/Head
 
 if(NOT EXISTS "${_sdl3_version_h}")
     message(AUTHOR_WARNING "Cannot not find SDL_version.h. This script is meant to be placed in share/cmake/SDL3, next to SDL3.xcframework")
+    set(PACKAGE_VERSION_UNSUITABLE TRUE)
     return()
 endif()
 
@@ -24,6 +25,7 @@ if(_sdl_major_re AND _sdl_minor_re AND _sdl_patch_re)
     set(PACKAGE_VERSION "${_sdl_major}.${_sdl_minor}.${_sdl_patch}")
 else()
     message(AUTHOR_WARNING "Could not extract version from SDL_version.h.")
+    set(PACKAGE_VERSION_UNSUITABLE TRUE)
     return()
 endif()
 
@@ -52,9 +54,5 @@ endif()
 
 # The SDL3.xcframework only contains 64-bit archives
 if(NOT "${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-    set(PACKAGE_VERSION_UNSUITABLE TRUE)
-endif()
-
-if(NOT CMAKE_SYSTEM_NAME MATCHES "^(Darwin|iOS|tvOS)$")
     set(PACKAGE_VERSION_UNSUITABLE TRUE)
 endif()

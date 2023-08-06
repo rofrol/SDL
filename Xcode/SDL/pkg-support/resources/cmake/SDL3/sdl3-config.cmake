@@ -86,7 +86,7 @@ set(SDL3_Headers_FOUND TRUE)
 
 if(NOT TARGET SDL3::SDL3-shared)
     add_library(SDL3::SDL3-shared SHARED IMPORTED)
-    if(CMAKE_VERSION GREATER_EQUAL "3.28")
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.28")
         set_target_properties(SDL3::SDL3-shared
             PROPERTIES
                 FRAMEWORK "TRUE"
