@@ -5,6 +5,7 @@
 
 if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/../include/SDL3/SDL_version.h")
     message(AUTHOR_WARNING "Could not find SDL3/SDL_version.h. This script is meant to be placed in the root of SDL3-devel-3.x.y-VC")
+    set(PACKAGE_VERSION_UNSUITABLE TRUE)
     return()
 endif()
 
@@ -19,6 +20,7 @@ if(_sdl_major_re AND _sdl_minor_re AND _sdl_patch_re)
     set(PACKAGE_VERSION "${_sdl_major}.${_sdl_minor}.${_sdl_patch}")
 else()
     message(AUTHOR_WARNING "Could not extract version from SDL3/SDL_version.h.")
+    set(PACKAGE_VERSION_UNSUITABLE TRUE)
     return()
 endif()
 
