@@ -101,6 +101,8 @@ jobs:
           -DSDL_CLANG_TIDY=ON \
           -DCMAKE_INSTALL_PREFIX=cmake_prefix \
           -DCMAKE_BUILD_TYPE=Release \
+          -DSDL_TESTS_AUDIO_DRIVER="" \
+          -DSDL_TESTS_VIDEO_DRIVER="" \
           ${{ matrix.platform.cmake }}
     - name: Build (CMake)
       id: build

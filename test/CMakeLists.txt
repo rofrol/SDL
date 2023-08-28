@@ -466,11 +466,17 @@ if(APPLE)
   endforeach()
 endif()
 
+set(SDL_TESTS_AUDIO_DRIVER "dummy" CACHE STRING "SDL audio driver for CTest tests (SDL_AUDIO_DRIVER)")
+set(SDL_TESTS_VIDEO_DRIVER "dummy" CACHE STRING "SDL video driver for CTest tests (SDL_VIDEO_DRIVER)")
+
 set(TESTS_ENVIRONMENT
-    SDL_AUDIO_DRIVER=dummy
-    SDL_VIDEO_DRIVER=dummy
-    PATH=$<TARGET_FILE_DIR:SDL3::${sdl_name_component}>
 )
+if(SDL_TESTS_AUDIO_DRIVER)
+    list(APPEND TESTS_ENVIRONMENT "SDL_AUDIO_DRIVER=${SDL_TESTS_AUDIO_DRIVER}")
+endif()
+if(SDL_TESTS_VIDEO_DRIVER)
+    list(APPEND TESTS_ENVIRONMENT "SDL_VIDEO_DRIVER=${SDL_TESTS_VIDEO_DRIVER}")
+endif()
 
 foreach(TEST ${SDL_TEST_EXECUTABLES})
     get_property(noninteractive TARGET ${TEST} PROPERTY SDL_NONINTERACTIVE)
@@ -485,7 +491,11 @@ foreach(TEST ${SDL_TEST_EXECUTABLES})
             COMMAND ${command}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
-        set_tests_properties(${TEST} PROPERTIES ENVIRONMENT "${TESTS_ENVIRONMENT}")
+        set_property(TEST ${TEST} PROPERTY ENVIRONMENT "${TESTS_ENVIRONMENT}")
+        if(WIN32)
+            # CMake 3.22+. Older CMake versions should modify PATH prior to running CTest, or configure CMake with -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=..
+            set_property(TEST ${TEST} PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:SDL3::${sdl_name_component}>")
+        endif()
         get_property(noninteractive_timeout TARGET ${TEST} PROPERTY SDL_NONINTERACTIVE_TIMEOUT)
         if(NOT noninteractive_timeout)
             set(noninteractive_timeout 10)
