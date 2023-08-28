@@ -24,12 +24,12 @@ jobs:
         - { name: Windows (clang32),              os: windows-latest, shell: 'msys2 {0}', msystem: clang32, msys-env: mingw-w64-clang-i686, artifact: 'SDL-msys2-clang32' }
         - { name: Windows (clang64),              os: windows-latest, shell: 'msys2 {0}', msystem: clang64, msys-env: mingw-w64-clang-x86_64, artifact: 'SDL-msys2-clang64' }
         - { name: Windows (ucrt64),               os: windows-latest, shell: 'msys2 {0}', msystem: ucrt64,  msys-env: mingw-w64-ucrt-x86_64, artifact: 'SDL-msys2-ucrt64' }
-        - { name: Ubuntu 20.04,                   os: ubuntu-20.04,   shell: sh, artifact: 'SDL-ubuntu20.04' }
-        - { name: Intel oneAPI (Ubuntu 20.04),    os: ubuntu-20.04,   shell: bash, artifact: 'SDL-ubuntu20.04-oneapi', intel: true,
+        - { name: Ubuntu 20.04,                   os: ubuntu-20.04,   shell: sh,    test-x11: true, artifact: 'SDL-ubuntu20.04' }
+        - { name: Intel oneAPI (Ubuntu 20.04),    os: ubuntu-20.04,   shell: bash,  test-x11: true, artifact: 'SDL-ubuntu20.04-oneapi', intel: true,
             source_cmd: 'source /opt/intel/oneapi/setvars.sh; export CC=icx; export CXX=icx;'}
-        - { name: Intel Compiler (Ubuntu 20.04),  os: ubuntu-20.04,   shell: bash, artifact: 'SDL-ubuntu20.04-icc', intel: true, cmake: '-DSDL_CLANG_TIDY=OFF',
+        - { name: Intel Compiler (Ubuntu 20.04),  os: ubuntu-20.04,   shell: bash,  test-x11: true, artifact: 'SDL-ubuntu20.04-icc', intel: true, cmake: '-DSDL_CLANG_TIDY=OFF',
             source_cmd: 'source /opt/intel/oneapi/setvars.sh; export CC=icc; export CXX=icpc; export CFLAGS=-diag-disable=10441; export CXXFLAGS=-diag-disable=10441; '}
-        - { name: Ubuntu 22.04,                   os: ubuntu-22.04,   shell: sh, artifact: 'SDL-ubuntu22.04' }
+        - { name: Ubuntu 22.04,                   os: ubuntu-22.04,   shell: sh,    test-x11: true, artifact: 'SDL-ubuntu22.04' }
         - { name: MacOS (Framework),              os: macos-latest,   shell: sh,    cmake: '-DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DSDL_FRAMEWORK=ON -DSDL_CLANG_TIDY=OFF', skip_test_pkgconfig: true, artifact: 'SDL-macos-framework', no-static: true }
         - { name: MacOS (GNU prefix),             os: macos-latest,   shell: sh,    cmake: '-DCMAKE_OSX_ARCHITECTURES="x86_64" -DCLANG_TIDY_BINARY="$(brew --prefix llvm)/bin/clang-tidy"', artifact: 'SDL-macos-gnu' }
 
@@ -56,7 +56,8 @@ jobs:
             libaudio-dev libjack-dev libsndio-dev libusb-1.0-0-dev libx11-dev libxext-dev \
             libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libwayland-dev \
             libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
-            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev
+            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
+            xvfb
 
     - name: Setup extra Ubuntu 22.04 dependencies
       if: matrix.platform.os == 'ubuntu-22.04'
@@ -101,6 +102,8 @@ jobs:
           -DSDL_VENDOR_INFO="Github Workflow" \
           -DSDL_CLANG_TIDY=ON \
           -DCMAKE_INSTALL_PREFIX=cmake_prefix \
+          -DSDL_TESTS_AUDIO_DRIVER="" \
+          -DSDL_TESTS_VIDEO_DRIVER="" \
           -DCMAKE_BUILD_TYPE=Release \
           ${{ matrix.platform.cmake }}
     - name: Build (CMake)
@@ -112,12 +115,23 @@ jobs:
       run: |
         ${{ matrix.platform.source_cmd }}
         set -eu
+        export SDL_AUDIO_DRIVER=dummy
+        export SDL_VIDEO_DRIVER=dummy
         export SDL_TESTS_QUICK=1
         ctest -VV --test-dir build/ -j2
         if test "${{ runner.os }}" = "Linux"; then
           # This should show us the SDL_REVISION
           strings build/libSDL3.so.0 | grep SDL-
         fi
+    - name: Run build-time tests (x11) (CMake)
+      if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
+      run: |
+        ${{ matrix.platform.source_cmd }}
+        set -eu
+        export SDL_AUDIO_DRIVER=dummy
+        export SDL_VIDEO_DRIVER=x11
+        export SDL_TESTS_QUICK=1
+        xvfb-run ctest -VV --test-dir build/ -j2
     - name: Install (CMake)
       run: |
         ${{ matrix.platform.source_cmd }}
