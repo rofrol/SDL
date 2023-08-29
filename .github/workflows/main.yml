@@ -148,6 +148,11 @@ jobs:
         echo_run(["valgrind", "--tool=callgrind", "build/test/testkeys"])
         EOF
         chmod a+x script.py
+
+    - name: Run build-time tests (x11) (CMake)
+      if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
+      timeout-minutes: 10
+      run: |
         xvfb-run -a -e /dev/stderr ./script.py
     - name: Run build-time tests (x11) (CMake)
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
