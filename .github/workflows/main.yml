@@ -124,7 +124,7 @@ jobs:
         fi
     - name: Run build-time tests (x11) (CMake)
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
-      timeout-minuts: 5
+      timeout-minutes: 5
       run: |
         sudo apt-get install valgrind
         
