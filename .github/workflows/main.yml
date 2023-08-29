@@ -122,14 +122,12 @@ jobs:
           # This should show us the SDL_REVISION
           strings build/libSDL3.so.0 | grep SDL-
         fi
-    - name: Run build-time tests (x11) (CMake)
+    - name: valgrind setup
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
       timeout-minutes: 10
       run: |
         sudo apt-get install valgrind
         
-        export SDL_VIDEO_DRIVER=x11
-        export SDL_AUDIO_DRIVER=dummy
         cat >script.py <<EOF
         #!/usr/bin/env python
         import subprocess
@@ -151,10 +149,12 @@ jobs:
         EOF
         chmod a+x script.py
 
-    - name: Run build-time tests (x11) (CMake)
+    - name: x11 python
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
       timeout-minutes: 10
       run: |
+        export SDL_VIDEO_DRIVER=x11
+        export SDL_AUDIO_DRIVER=dummy
         xvfb-run -a -e /dev/stderr ./script.py
     - name: Run build-time tests (x11) (CMake)
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
