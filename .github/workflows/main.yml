@@ -133,9 +133,11 @@ jobs:
         cat >script.py <<EOF
         #!/usr/bin/env python
         import subprocess
+        import sys
         
         def echo_run(cmd):
           print(cmd)
+          sys.stdout.flush()
           subprocess.check_call(cmd)
         
         echo_run(["build/test/testautomation"])
