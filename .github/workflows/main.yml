@@ -129,7 +129,7 @@ jobs:
         sudo apt-get install valgrind
         
         export SDL_VIDEO_DRIVER=x11
-        export SDL_AUDIO_DRIVER=x11
+        export SDL_AUDIO_DRIVER=dummy
         xvfb-run build/test/testautomation
         xvfb-run build/test/testaudioinfo
         xvfb-run build/test/testatomic
