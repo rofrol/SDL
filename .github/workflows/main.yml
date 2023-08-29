@@ -128,7 +128,7 @@ jobs:
       run: |
         sudo apt-get install valgrind
         
-        xvfb-run valgrind --tool=callgrind test/testkeys
+        xvfb-run valgrind --tool=callgrind build/test/testkeys
         callgrind_annotate callgrind.out.*
 
 
