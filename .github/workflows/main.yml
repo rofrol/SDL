@@ -136,6 +136,7 @@ jobs:
         xvfb-run -a -e /dev/stderr build/test/testevdev
         xvfb-run -a -e /dev/stderr build/test/testfile
         xvfb-run -a -e /dev/stderr build/test/testthread
+        xvfb-run -a -e /dev/stderr build/test/testkeys
         xvfb-run -a -e /dev/stderr valgrind --tool=callgrind build/test/testkeys
     - name: Run build-time tests (x11) (CMake)
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
