@@ -130,14 +130,21 @@ jobs:
         
         export SDL_VIDEO_DRIVER=x11
         export SDL_AUDIO_DRIVER=dummy
-        xvfb-run -a -e /dev/stderr build/test/testautomation
-        xvfb-run -a -e /dev/stderr build/test/testaudioinfo
-        xvfb-run -a -e /dev/stderr build/test/testatomic
-        xvfb-run -a -e /dev/stderr build/test/testevdev
-        xvfb-run -a -e /dev/stderr build/test/testfile
-        xvfb-run -a -e /dev/stderr build/test/testthread
-        xvfb-run -a -e /dev/stderr build/test/testkeys
-        xvfb-run -a -e /dev/stderr valgrind --tool=callgrind build/test/testkeys
+        cat >script.sh <<EOF
+        #!/bin/bash
+        set -ex
+        
+        build/test/testautomation
+        build/test/testaudioinfo
+        build/test/testatomic
+        build/test/testevdev
+        build/test/testfile
+        build/test/testthread
+        build/test/testkeys
+        valgrind --tool=callgrind build/test/testkeys
+        EOF
+        chmod a+x script.sh
+        xvfb-run -a -e /dev/stderr ./script.sh
     - name: Run build-time tests (x11) (CMake)
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
       timeout-minutes: 5
