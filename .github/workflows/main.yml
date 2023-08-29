@@ -130,21 +130,25 @@ jobs:
         
         export SDL_VIDEO_DRIVER=x11
         export SDL_AUDIO_DRIVER=dummy
-        cat >script.sh <<EOF
-        #!/bin/bash
-        set -ex
+        cat >script.py <<EOF
+        #!/usr/bin/env python
+        import subprocess
         
-        build/test/testautomation
-        build/test/testaudioinfo
-        build/test/testatomic
-        build/test/testevdev
-        build/test/testfile
-        build/test/testthread
-        build/test/testkeys
-        valgrind --tool=callgrind build/test/testkeys
+        def echo_run(cmd):
+          print(cmd)
+          subprocess.check_call(cmd)
+        
+        echo_run(["build/test/testautomation"])
+        echo_run(["build/test/testaudioinfo"])
+        echo_run(["build/test/testatomic"])
+        echo_run(["build/test/testevdev"])
+        echo_run(["build/test/testfile"])
+        echo_run(["build/test/testthread"])
+        echo_run(["build/test/testkeys"])
+        echo_run(["valgrind", "--tool=callgrind", "build/test/testkeys"])
         EOF
-        chmod a+x script.sh
-        xvfb-run -a -e /dev/stderr ./script.sh
+        chmod a+x script.py
+        xvfb-run -a -e /dev/stderr ./script.py
     - name: Run build-time tests (x11) (CMake)
       if: ${{ always() && steps.build.outcome == 'success' && !!matrix.platform.test-x11 }}
       timeout-minutes: 5
