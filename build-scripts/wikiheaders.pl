@@ -34,22 +34,10 @@ my $manpath = undef;
 my $gitrev = undef;
 
 foreach (@ARGV) {
-    $warn_about_missing = 1, next if $_ eq '--warn-about-missing';
-    $copy_direction = 1, next if $_ eq '--copy-to-headers';
-    $copy_direction = 1, next if $_ eq '--copy-to-header';
-    $copy_direction = -1, next if $_ eq '--copy-to-wiki';
-    $copy_direction = -2, next if $_ eq '--copy-to-manpages';
     if (/\A--options=(.*)\Z/) {
         $optionsfname = $1;
         next;
-    } elsif (/\A--changeformat=(.*)\Z/) {
-        $changeformat = $1;
-        next;
-    } elsif (/\A--manpath=(.*)\Z/) {
-        $manpath = $1;
-        next;
-    } elsif (/\A--rev=(.*)\Z/) {
-        $gitrev = $1;
+    } else if (/\A--.*\Z/) {
         next;
     }
     $srcpath = $_, next if not defined $srcpath;
@@ -96,6 +84,24 @@ if (defined $optionsfname) {
         }
     }
     close(OPTIONS);
+}
+
+foreach (@ARGV) {
+    $warn_about_missing = 1, next if $_ eq '--warn-about-missing';
+    $copy_direction = 1, next if $_ eq '--copy-to-headers';
+    $copy_direction = 1, next if $_ eq '--copy-to-header';
+    $copy_direction = -1, next if $_ eq '--copy-to-wiki';
+    $copy_direction = -2, next if $_ eq '--copy-to-manpages';
+    if (/\A--changeformat=(.*)\Z/) {
+        $changeformat = $1;
+        next;
+    } elsif (/\A--manpath=(.*)\Z/) {
+        $manpath = $1;
+        next;
+    } elsif (/\A--rev=(.*)\Z/) {
+        $gitrev = $1;
+        next;
+    }
 }
 
 my $wordwrap_mode = 'mediawiki';
