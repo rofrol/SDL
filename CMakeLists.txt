@@ -3133,6 +3133,7 @@ sdl_compile_definitions(
 if(SDL_TEST_LIBRARY)
   file(GLOB TEST_SOURCES "${SDL3_SOURCE_DIR}/src/test/*.c")
   target_sources(SDL3_test PRIVATE ${TEST_SOURCES})
+  source_group(TREE "${SDL3_SOURCE_DIR}/src/test" FILES ${TEST_SOURCES})
   if(APPLE)
     set_target_properties(SDL3_test PROPERTIES
       FRAMEWORK "${SDL_FRAMEWORK}"
