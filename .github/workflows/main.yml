@@ -128,10 +128,13 @@ jobs:
       run: |
         ${{ matrix.platform.source_cmd }}
         set -eu
+        Xvfb &
+        pid_xvfb=$!
         export SDL_AUDIO_DRIVER=dummy
         export SDL_VIDEO_DRIVER=x11
         export SDL_TESTS_QUICK=1
-        xvfb-run ctest -VV --test-dir build/ -j2
+        ctest -VV --test-dir build/ -j2
+        kill -SIGINT $pid_xvfb
     - name: Install (CMake)
       run: |
         ${{ matrix.platform.source_cmd }}
