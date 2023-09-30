@@ -128,7 +128,8 @@ jobs:
       run: |
         ${{ matrix.platform.source_cmd }}
         set -eu
-        Xvfb &
+        export DISPLAY=:2
+        Xvfb $DISPLAY &
         pid_xvfb=$!
         export SDL_AUDIO_DRIVER=dummy
         export SDL_VIDEO_DRIVER=x11
