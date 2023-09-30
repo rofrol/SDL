@@ -303,7 +303,7 @@ add_sdl_test_executable(testoverlay NEEDS_RESOURCES TESTUTILS SOURCES testoverla
 add_sdl_test_executable(testplatform NONINTERACTIVE SOURCES testplatform.c)
 add_sdl_test_executable(testpower NONINTERACTIVE SOURCES testpower.c)
 add_sdl_test_executable(testfilesystem NONINTERACTIVE SOURCES testfilesystem.c)
-if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+if(1)#WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     add_sdl_test_executable(pretest SOURCES pretest.c NONINTERACTIVE NONINTERACTIVE_TIMEOUT 60)
 endif()
 add_sdl_test_executable(testrendertarget NEEDS_RESOURCES TESTUTILS SOURCES testrendertarget.c)
