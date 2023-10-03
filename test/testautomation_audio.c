@@ -32,6 +32,9 @@ static void audioSetUp(void *arg)
 
 static void audioTearDown(void *arg)
 {
+    SDL_QuitSubSystem(SDL_INIT_AUDIO);
+    SDLTest_AssertPass("Call to SDL_QuitSubSystem(SDL_INIT_AUDIO)");
+
     /* Remove a possibly created file from SDL disk writer audio driver; ignore errors */
     (void)remove("sdlaudio.raw");
 
