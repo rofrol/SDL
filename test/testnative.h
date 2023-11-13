@@ -28,6 +28,7 @@ typedef struct
 {
     const char *tag;
     void *(*CreateNativeWindow)(int w, int h);
+    void (*Loop)(void *window, int *done);
     void (*DestroyNativeWindow)(void *window);
 } NativeWindowFactory;
 

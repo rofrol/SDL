@@ -1,0 +1,36 @@
+#include "testnativew32.h"
+
+#include "windows.h"
+
+IDI_ICON        ICON         "icon.ico"
+
+IDC_TESTNATIVE MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "E&xit",                IDM_EXIT
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About ...",           IDM_ABOUT
+    END
+END
+
+IDC_TESTNATIVE ACCELERATORS
+BEGIN
+    VK_ESCAPE,        IDM_EXIT,         VIRTKEY
+    VK_HELP,          IDM_ABOUT,        VIRTKEY
+    VK_F1,            IDM_ABOUT,        VIRTKEY
+    VK_OEM_2,         IDM_ABOUT,        VIRTKEY, ALT
+END
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 200, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About testnative"
+FONT 9, "MS Shell Dlg"
+BEGIN
+    ICON            IDI_ICON,IDC_STATIC,14,14,21,20
+    LTEXT           "SDL testnative for Windows, version 3",IDC_STATIC,42,14,140,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1997-2023 Sam Lantinga",IDC_STATIC,42,26,130,8
+    DEFPUSHBUTTON   "OK",IDOK,143,41,50,14,WS_GROUP
+END

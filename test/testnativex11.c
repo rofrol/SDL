@@ -17,11 +17,13 @@
 #include <X11/Xlib.h>
 
 static void *CreateWindowX11(int w, int h);
+static void LoopWindowX11(void *window, int *done);
 static void DestroyWindowX11(void *window);
 
 NativeWindowFactory X11WindowFactory = {
     "x11",
     CreateWindowX11,
+    LoopWindowX11,
     DestroyWindowX11
 };
 
@@ -41,6 +43,13 @@ CreateWindowX11(int w, int h)
         XSync(dpy, False);
     }
     return (void *)window;
+}
+
+static void LoopWindowX11(void *window, int *done)
+{
+    while (!*done) {
+        SDL_Delay(10);
+    }
 }
 
 static void

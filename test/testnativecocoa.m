@@ -18,6 +18,7 @@ static void DestroyWindowCocoa(void *window);
 NativeWindowFactory CocoaWindowFactory = {
     "cocoa",
     CreateWindowCocoa,
+    NULL,
     DestroyWindowCocoa
 };
 

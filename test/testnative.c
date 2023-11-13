@@ -42,6 +42,8 @@ static NativeWindowFactory *factory = NULL;
 static void *native_window;
 static SDL_FRect *positions, *velocities;
 static SDLTest_CommonState *state;
+static SDL_Renderer *renderer;
+static SDL_Texture *sprite;
 
 /* Call this instead of exit(), so we can clean up SDL: atexit() is evil. */
 static void
@@ -58,7 +60,7 @@ quit(int rc)
     }
 }
 
-static void MoveSprites(SDL_Renderer *renderer, SDL_Texture *sprite)
+static void MoveSprites(void)
 {
     int sprite_w, sprite_h;
     int i;
@@ -96,17 +98,42 @@ static void MoveSprites(SDL_Renderer *renderer, SDL_Texture *sprite)
     SDL_RenderPresent(renderer);
 }
 
+static int loop(void *data)
+{
+    int *done = data;
+
+    /* Main render loop */
+    while (!*done) {
+        SDL_Event event;
+        /* Check for events */
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+            case SDL_EVENT_WINDOW_EXPOSED:
+                SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xA0, 0xFF);
+                SDL_RenderClear(renderer);
+                break;
+            case SDL_EVENT_QUIT:
+                *done = 1;
+                break;
+            default:
+                break;
+            }
+        }
+        MoveSprites();
+    }
+    return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
     int i, done;
     const char *driver;
     SDL_PropertiesID props;
     SDL_Window *window;
-    SDL_Renderer *renderer;
-    SDL_Texture *sprite;
     int window_w, window_h;
     int sprite_w, sprite_h;
-    SDL_Event event;
+    int threaded = 0;
 
     /* Initialize test framework */
     state = SDLTest_CommonCreateState(argv, 0);
@@ -118,8 +145,23 @@ int main(int argc, char *argv[])
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
 
     /* Parse commandline */
-    if (!SDLTest_CommonDefaultArgs(state, argc, argv)) {
-        return 1;
+    for (i = 1; i < argc;) {
+        int consumed;
+
+        consumed = SDLTest_CommonArg(state, i);
+        if (!consumed) {
+            if (SDL_strcmp(argv[1], "--threaded") == 0) {
+                threaded = 1;
+                consumed = 1;
+            }
+        }
+        if (consumed <= 0) {
+            static const char *options[] = { "[--threaded]", NULL };
+            SDLTest_CommonLogUsage(state, argv[0], options);
+            return 1;
+        }
+
+        i += consumed;
     }
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -196,24 +238,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Main render loop */
+    threaded = threaded && factory->Loop;
     done = 0;
-    while (!done) {
-        /* Check for events */
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-            case SDL_EVENT_WINDOW_EXPOSED:
-                SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xA0, 0xFF);
-                SDL_RenderClear(renderer);
-                break;
-            case SDL_EVENT_QUIT:
-                done = 1;
-                break;
-            default:
-                break;
-            }
-        }
-        MoveSprites(renderer, sprite);
+    if (threaded) {
+        SDL_Thread *thread = SDL_CreateThread(loop, "testnative thread", &done);
+        factory->Loop(native_window, &done);
+        SDL_WaitThread(thread, NULL);
+    } else {
+        loop(&done);
     }
 
     SDL_DestroyTexture(sprite);
