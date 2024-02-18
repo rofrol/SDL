@@ -25,7 +25,7 @@ NativeWindowFactory WindowsWindowFactory = {
     DestroyWindowNative
 };
 
-LRESULT CALLBACK
+static LRESULT CALLBACK
 WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
