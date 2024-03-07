@@ -23,6 +23,7 @@
 
 #if defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_GDK)
 #include "core/windows/SDL_windows.h"
+#include "dynapi/SDL_dynapic_c.h"
 #elif !defined(SDL_PLATFORM_WINRT)
 #include <unistd.h> /* _exit(), etc. */
 #endif
@@ -687,13 +688,25 @@ SDL_bool SDL_IsTablet(void)
 
 #ifdef SDL_PLATFORM_WIN32
 
-#if (!defined(HAVE_LIBC) || defined(__WATCOMC__)) && !defined(SDL_STATIC_LIB)
-/* FIXME: Still need to include DllMain() on Watcom C ? */
+#if !defined(SDL_STATIC_LIB)
+/* Only initialize dynapi in entry functions when SDL is built as a DLL:
+ * - when built with a CRT, the CRT will call WinMain
+ * - when built without a CRT, _DllMainCRTStartup becomes the entry function
+ */
+#if defined(HAVE_LIBC)
+#define SDL_win32_dllmain DllMain
+#define SDL_win32_dllmain_align
+#else
+#define SDL_win32_dllmain _DllMainCRTStartup
+#define SDL_win32_dllmain_align MINGW32_FORCEALIGN
+#endif
 
-BOOL APIENTRY MINGW32_FORCEALIGN _DllMainCRTStartup(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+BOOL APIENTRY SDL_win32_dllmain_align SDL_win32_dllmain(HANDLE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-    switch (ul_reason_for_call) {
+    switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
+        SDL_InitDynamicAPI();
+        break;
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
@@ -701,6 +714,7 @@ BOOL APIENTRY MINGW32_FORCEALIGN _DllMainCRTStartup(HANDLE hModule, DWORD ul_rea
     }
     return TRUE;
 }
-#endif /* Building DLL */
 
-#endif /* defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_GDK) */
+#endif /* !defined(SDL_STATIC_LIB) */
+
+#endif /* defined(SDL_PLATFORM_WIN32) */

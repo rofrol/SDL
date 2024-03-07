@@ -121,12 +121,14 @@ void *SDL_memset4(void *dst, Uint32 val, size_t dwords)
 #ifndef HAVE_LIBC
 /* NOLINTNEXTLINE(readability-redundant-declaration) */
 extern void *memset(void *dst, int c, size_t len);
-#ifndef __INTEL_LLVM_COMPILER
+#if defined(_MSC_VER) && !defined(__INTEL_LLVM_COMPILER)
 #pragma intrinsic(memset)
 #endif
 
 #ifndef __clang__
+#if defined(_MSC_VER)
 #pragma function(memset)
+#endif
 #endif
 /* NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name) */
 void *memset(void *dst, int c, size_t len)

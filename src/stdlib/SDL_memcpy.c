@@ -84,12 +84,14 @@ void *SDL_memcpy(SDL_OUT_BYTECAP(len) void *dst, SDL_IN_BYTECAP(len) const void 
 #ifndef HAVE_LIBC
 /* NOLINTNEXTLINE(readability-redundant-declaration) */
 extern void *memcpy(void *dst, const void *src, size_t len);
-#ifndef __INTEL_LLVM_COMPILER
+#if defined(_MSC_VER) && !defined(__INTEL_LLVM_COMPILER)
 #pragma intrinsic(memcpy)
 #endif
 
 #ifndef __clang__
+#if defined(_MSC_VER)
 #pragma function(memcpy)
+#endif
 #endif
 /* NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name) */
 void *memcpy(void *dst, const void *src, size_t len)
