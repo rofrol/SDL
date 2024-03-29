@@ -77,7 +77,7 @@
     <ClInclude Include="..\include\SDL3\SDL_quit.h" />
     <ClInclude Include="..\include\SDL3\SDL_rect.h" />
     <ClInclude Include="..\include\SDL3\SDL_render.h" />
-    <ClInclude Include="..\include\SDL3\SDL_revision.h" />
+    <ClInclude Include="..\include\build_config\SDL_revision.h" />
     <ClInclude Include="..\include\SDL3\SDL_iostream.h" />
     <ClInclude Include="..\include\SDL3\SDL_scancode.h" />
     <ClInclude Include="..\include\SDL3\SDL_sensor.h" />

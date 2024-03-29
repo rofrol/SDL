@@ -345,7 +345,7 @@
     <ClInclude Include="..\..\include\SDL3\SDL_render.h">
       <Filter>API Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\SDL3\SDL_revision.h">
+    <ClInclude Include="..\..\include\build_config\SDL_revision.h">
       <Filter>API Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\SDL3\SDL_iostream.h">
