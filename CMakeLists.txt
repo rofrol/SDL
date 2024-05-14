@@ -3352,6 +3352,37 @@ sdl_compile_definitions(
     "SDL_BUILD_MICRO_VERSION=${PROJECT_VERSION_PATCH}"
 )
 
+##### Include external CMake modules #####
+
+set(SDL_EXTERNAL_CMAKE_MODULES CACHE STRING "List of paths of SDL CMake modules")
+
+set(SDL_EXTERNAL_VIDEO_DRIVERS "")
+foreach(sdl_module IN LISTS SDL_EXTERNAL_CMAKE_MODULES)
+  get_filename_component(SDL_MODULE_DIR "${sdl_module}" DIRECTORY)
+  include("${sdl_module}")
+endforeach()
+
+# SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS
+# SDL_VIDEO_EXTERNAL_BOOTSTRAP_COMMA_LIST
+set(SDL_VIDEO_EXTERNAL_BOOTSTRAP_COMMA_LIST)
+set(SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS)
+foreach(sdl_video_driver IN LISTS SDL_EXTERNAL_VIDEO_DRIVERS)
+  string(APPEND SDL_VIDEO_EXTERNAL_BOOTSTRAP_COMMA_LIST "&${sdl_video_driver}_bootstrap, ")
+  string(APPEND SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS "extern VideoBootStrap ${sdl_video_driver}_bootstrap; ")
+endforeach()
+
+set(external_module_header_contents "#ifndef SDL_external_config_h_
+#define SDL_external_config_h_
+
+#define SDL_VIDEO_EXTERNAL_BOOTSTRAP_COMMA_LIST ${SDL_VIDEO_EXTERNAL_BOOTSTRAP_COMMA_LIST}
+#define SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS ${SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS}
+
+#endif /* SDL_external_config_h_ */
+")
+
+file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/build_config/SDL_external_config.h" CONTENT "${external_module_header_contents}")
+sdl_compile_definitions(PRIVATE SDL_EXTERNAL_CONFIG)
+
 ##### Tests #####
 
 if(SDL_TEST_LIBRARY)

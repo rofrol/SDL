@@ -462,6 +462,13 @@ typedef struct VideoBootStrap
     int (*ShowMessageBox)(const SDL_MessageBoxData *messageboxdata, int *buttonID);  /* can be done without initializing backend! */
 } VideoBootStrap;
 
+#ifndef SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS
+#define SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS
+#endif
+#ifndef SDL_VIDEO_EXTERNAL_BOOTSTRAP_COMMA_LIST
+#define SDL_VIDEO_EXTERNAL_BOOTSTRAP_COMMA_LIST
+#endif
+
 /* Not all of these are available in a given build. Use #ifdefs, etc. */
 extern VideoBootStrap COCOA_bootstrap;
 extern VideoBootStrap X11_bootstrap;
@@ -485,6 +492,7 @@ extern VideoBootStrap Emscripten_bootstrap;
 extern VideoBootStrap OFFSCREEN_bootstrap;
 extern VideoBootStrap NGAGE_bootstrap;
 extern VideoBootStrap QNX_bootstrap;
+SDL_VIDEO_EXTERNAL_BOOTSTRAP_DECLS
 
 /* Use SDL_OnVideoThread() sparingly, to avoid regressions in use cases that currently happen to work */
 extern SDL_bool SDL_OnVideoThread(void);

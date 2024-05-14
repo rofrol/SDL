@@ -61,6 +61,9 @@
     }
 
 #include "build_config/SDL_build_config.h"
+#ifdef SDL_EXTERNAL_CONFIG
+#include "build_config/SDL_external_config.h"
+#endif
 
 #include "dynapi/SDL_dynapi.h"
 
