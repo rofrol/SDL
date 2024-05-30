@@ -169,6 +169,7 @@ jobs:
 #        shell: ${{ matrix.platform.shell }}
         run: |
           ${{ matrix.platform.source-cmd }}
+          ${{ matrix.platform.pretest-cmd }}
           set -eu
           export SDL_TESTS_QUICK=1
           ctest -VV --test-dir build/ -j2
