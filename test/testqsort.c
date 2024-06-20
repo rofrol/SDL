@@ -15,6 +15,7 @@
 #include <SDL3/SDL_test.h>
 
 static int a_global_var = 77;
+static SDL_bool qsort_is_broken = SDL_FALSE;
 
 static int SDLCALL
 num_compare(const void *_a, const void *_b)
@@ -28,43 +29,69 @@ static int SDLCALL
 num_compare_r(void *userdata, const void *a, const void *b)
 {
     if (userdata != &a_global_var) {
-        SDL_Log("Uhoh, invalid userdata during qsort!");
+        SDL_Log("Uhoh, num_compare_r got invalid userdata during SDL_qsort_r!");
+        qsort_is_broken = SDL_TRUE;
     }
     return num_compare(a, b);
+}
+
+static int SDLCALL
+num_compare_non_transitive_r(void *userdata, const void *_a, const void *_b)
+{
+    if (userdata != &a_global_var) {
+        SDL_Log("Uhoh, num_compare_non_transitive_r got invalid userdata during SDL_qsort_r!");
+        qsort_is_broken = SDL_TRUE;
+    }
+    const int a = *((const int *)_a);
+    const int b = *((const int *)_b);
+    return a < b;
 }
 
 static void
 test_sort(const char *desc, int *nums, const int arraylen)
 {
-    static int nums_copy[1024 * 100];
+    int *nums_copy = SDL_malloc(arraylen * sizeof(int));
     int i;
     int prev;
-
-    SDL_assert(SDL_arraysize(nums_copy) >= arraylen);
 
     SDL_Log("test: %s arraylen=%d", desc, arraylen);
 
     SDL_memcpy(nums_copy, nums, arraylen * sizeof (*nums));
+    SDL_qsort_r(nums_copy, arraylen, sizeof(nums[0]), num_compare_non_transitive_r, &a_global_var);
+    prev = nums[0];
+    for (i = 1; i < arraylen; i++) {
+        const int val = nums_copy[i];
+        if (val < prev) {
+            SDL_Log("sorting using a non-transitive compare function is broken!");
+            qsort_is_broken = SDL_TRUE;
+            goto free_resources;
+        }
+        prev = val;
+    }
+
+    SDL_memcpy(nums_copy, nums, arraylen * sizeof (*nums));
+    SDL_qsort_r(nums_copy, arraylen, sizeof(nums[0]), num_compare_r, &a_global_var);
 
     SDL_qsort(nums, arraylen, sizeof(nums[0]), num_compare);
-    SDL_qsort_r(nums_copy, arraylen, sizeof(nums[0]), num_compare_r, &a_global_var);
 
     prev = nums[0];
     for (i = 1; i < arraylen; i++) {
         const int val = nums[i];
         const int val2 = nums_copy[i];
-        if ((val < prev) || (val != val2)) {
+        if (val < prev || val != val2) {
             SDL_Log("sort is broken!");
-            return;
+            qsort_is_broken = SDL_TRUE;
+            goto free_resources;
         }
         prev = val;
     }
+free_resources:
+    SDL_free(nums_copy);
 }
 
 int main(int argc, char *argv[])
 {
-    static int nums[1024 * 100];
-    static const int itervals[] = { SDL_arraysize(nums), 12 };
+    static const int itervals[] = { 0, 1, 12, 100, 100 * 1024 };
     int i;
     int iteration;
     SDLTest_RandomContext rndctx;
@@ -120,6 +147,7 @@ int main(int argc, char *argv[])
 
     for (iteration = 0; iteration < SDL_arraysize(itervals); iteration++) {
         const int arraylen = itervals[iteration];
+        int *nums = SDL_malloc(sizeof(int) * arraylen);
 
         for (i = 0; i < arraylen; i++) {
             nums[i] = i;
@@ -141,9 +169,11 @@ int main(int argc, char *argv[])
             nums[i] = SDLTest_RandomInt(&rndctx);
         }
         test_sort("random sorted", nums, arraylen);
+        SDL_free(nums);
     }
 
     SDLTest_CommonDestroyState(state);
+    SDL_Quit();
 
-    return 0;
+    return qsort_is_broken;
 }
