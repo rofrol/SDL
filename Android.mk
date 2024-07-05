@@ -1,20 +1,29 @@
 LOCAL_PATH := $(call my-dir)
 
-###########################
-#
-# SDL shared library
-#
-###########################
+# Variabled used in all SDL libraries (shared SDL3, static SDL3, SDL3_test)
 
-include $(CLEAR_VARS)
+SDL_CFLAGS += -DGL_GLEXT_PROTOTYPES
+SDL_CFLAGS += \
+	-Wall -Wextra \
+	-Wmissing-prototypes \
+	-Wunreachable-code-break \
+	-Wunneeded-internal-declaration \
+	-Wmissing-variable-declarations \
+	-Wfloat-conversion \
+	-Wshorten-64-to-32 \
+	-Wunreachable-code-return \
+	-Wshift-sign-overflow \
+	-Wstrict-prototypes \
+	-Wkeyword-macro \
 
-LOCAL_MODULE := SDL3
+# Warnings we haven't fixed (yet)
+SDL_CFLAGS += -Wno-unused-parameter -Wno-sign-compare
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/include $(LOCAL_PATH)/src
+SDL_CXXFLAGS += -std=gnu++11
 
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include
+SDL_LDLIBS := -ldl -lGLESv1_CM -lGLESv2 -lOpenSLES -llog -landroid
 
-LOCAL_SRC_FILES := \
+SDL_SRC_FILES := \
 	$(subst $(LOCAL_PATH)/,, \
 	$(wildcard $(LOCAL_PATH)/src/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/audio/*.c) \
@@ -30,8 +39,8 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/src/core/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/core/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/cpuinfo/*.c) \
-    $(LOCAL_PATH)/src/dialog/SDL_dialog_utils.c \
-    $(LOCAL_PATH)/src/dialog/android/SDL_androiddialog.c \
+	$(LOCAL_PATH)/src/dialog/SDL_dialog_utils.c \
+	$(LOCAL_PATH)/src/dialog/android/SDL_androiddialog.c \
 	$(wildcard $(LOCAL_PATH)/src/dynapi/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/events/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/file/*.c) \
@@ -73,31 +82,37 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/src/video/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/src/video/yuv2rgb/*.c))
 
-LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES
+###########################
+#
+# SDL shared library
+#
+###########################
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := SDL3
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/include $(LOCAL_PATH)/src
+
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include
+
+LOCAL_SRC_FILES := $(SDL_SRC_FILES)
+
+LOCAL_CFLAGS += $(SDL_CFLAGS)
+
 LOCAL_CFLAGS += \
-	-Wall -Wextra \
-	-Wmissing-prototypes \
-	-Wunreachable-code-break \
-	-Wunneeded-internal-declaration \
-	-Wmissing-variable-declarations \
-	-Wfloat-conversion \
-	-Wshorten-64-to-32 \
-	-Wunreachable-code-return \
-	-Wshift-sign-overflow \
-	-Wstrict-prototypes \
-	-Wkeyword-macro \
+	-fvisibility=hidden \
 
-# Warnings we haven't fixed (yet)
-LOCAL_CFLAGS += -Wno-unused-parameter -Wno-sign-compare
+LOCAL_CXXFLAGS += $(SDL_CXXFLAGS)
 
-LOCAL_CXXFLAGS += -std=gnu++11
+LOCAL_LDLIBS := $(SDL_LDLIBS)
 
-LOCAL_LDLIBS := -ldl -lGLESv1_CM -lGLESv2 -lOpenSLES -llog -landroid
-
-LOCAL_LDFLAGS := -Wl,--no-undefined -Wl,--version-script=$(LOCAL_PATH)/src/dynapi/SDL_dynapi.sym
+LOCAL_LDFLAGS := \
+	-Wl,--no-undefined \
+	-Wl,--version-script=$(LOCAL_PATH)/src/dynapi/SDL_dynapi.sym \
 
 ifeq ($(NDK_DEBUG),1)
-    cmd-strip :=
+	cmd-strip :=
 endif
 
 LOCAL_STATIC_LIBRARIES := cpufeatures
@@ -111,19 +126,19 @@ include $(BUILD_SHARED_LIBRARY)
 #
 ###########################
 
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := SDL3_test
 
-LOCAL_MODULE_FILENAME := libSDL3_test
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/include $(LOCAL_PATH)/src
+
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include
 
 LOCAL_SRC_FILES := \
 	$(subst $(LOCAL_PATH)/,, \
 	$(wildcard $(LOCAL_PATH)/src/test/*.c))
 
-LOCAL_LDLIBS :=
-
-LOCAL_LDFLAGS :=
-
-LOCAL_EXPORT_LDLIBS :=
+LOCAL_CFLAGS += $(SDL_CFLAGS)
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -134,15 +149,23 @@ include $(BUILD_STATIC_LIBRARY)
 #
 ###########################
 
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := SDL3_static
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/include $(LOCAL_PATH)/src
+
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include
+
+LOCAL_SRC_FILES := $(SDL_SRC_FILES)
+
+LOCAL_CFLAGS += $(SDL_CFLAGS)
+
+LOCAL_CXXFLAGS += $(SDL_CXXFLAGS)
 
 LOCAL_MODULE_FILENAME := libSDL3
 
-LOCAL_LDLIBS :=
-
-LOCAL_LDFLAGS :=
-
-LOCAL_EXPORT_LDLIBS := -ldl -lGLESv1_CM -lGLESv2 -llog -landroid
+LOCAL_EXPORT_LDLIBS := $(SDL_LDLIBS)
 
 include $(BUILD_STATIC_LIBRARY)
 
