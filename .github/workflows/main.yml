@@ -102,6 +102,9 @@ jobs:
         ${{ matrix.platform.source_cmd }}
         cmake -S . -B build -G Ninja \
           -Wdeprecated -Wdev -Werror \
+          -DCMAKE_C_FLAGS=-g \
+          -DCMAKE_CXX_FLAGS=-g \
+          -DCMAKE_OBJC_FLAGS=-g \
           -DSDL_SHARED=ON \
           -DSDL_STATIC=ON \
           -DSDL_TESTS=ON \
