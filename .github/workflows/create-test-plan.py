@@ -96,6 +96,9 @@ class JobSpec:
     clang_cl: bool = False
     uwp: bool = False
     vita_gles: Optional[VitaGLES] = None
+    cmake_cc: bool = False
+    cc: Optional[str] = None
+    cxx: Optional[str] = None
 
 
 JOB_SPECS = {
@@ -113,6 +116,7 @@ JOB_SPECS = {
     "msvc-uwp-x64": JobSpec(name="UWP (MSVC, x64)",                         os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-VC-UWP",             msvc_arch=MsvcArch.X64,   msvc_project="VisualC-WinRT/SDL-UWP.sln", uwp=True, ),
     "ubuntu-20.04": JobSpec(name="Ubuntu 20.04",                            os=JobOs.Ubuntu20_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu20.04", ),
     "ubuntu-22.04": JobSpec(name="Ubuntu 22.04",                            os=JobOs.Ubuntu22_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu22.04", ),
+    "ubuntu-24.04-llvm": JobSpec(name="Ubuntu 24.04 (LLVM)",                os=JobOs.Ubuntu24_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu24.04-llvm",   container="teeks99/clang-ubuntu:18", cmake_cc=True, cc="clang-18", cxx="clang++-18", ),
     "ubuntu-intel-icx": JobSpec(name="Ubuntu 20.04 (Intel oneAPI)",         os=JobOs.Ubuntu20_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu20.04-oneapi", intel=IntelCompiler.Icx, ),
     "ubuntu-intel-icc": JobSpec(name="Ubuntu 20.04 (Intel Compiler)",       os=JobOs.Ubuntu20_04,   platform=SdlPlatform.Linux,       artifact="SDL-ubuntu20.04-icc",    intel=IntelCompiler.Icc, ),
     "macos-framework-x64":  JobSpec(name="MacOS (Framework) (x86_64)",      os=JobOs.Macos12,       platform=SdlPlatform.MacOS,       artifact="SDL-macos-framework",    apple_framework=True, apple_archs={AppleArch.Aarch64, AppleArch.X86_64, }, ),
@@ -277,7 +281,14 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
         platform=spec.platform.value,
         sudo="sudo",
         no_cmake=spec.no_cmake,
+        cc=spec.cc or "",
+        cxx=spec.cxx or "",
     )
+    if spec.cmake_cc:
+        if spec.cc:
+            job.cmake_arguments.append(f"-DCMAKE_C_COMPILER={spec.cc}")
+        if spec.cxx:
+            job.cmake_arguments.append(f"-DCMAKE_CXX_COMPILER={spec.cxx}")
     if job.os.startswith("ubuntu"):
         job.apt_packages.extend([
             "ninja-build",
@@ -374,6 +385,7 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
                         job.setup_libusb_arch = "x64"
         case SdlPlatform.Linux:
             job.apt_packages.extend((
+                "cmake",
                 "gnome-desktop-testing",
                 "libasound2-dev",
                 "libpulse-dev",
@@ -504,7 +516,7 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
                 "-DSDL_ARMSIMD=ON",
                 ))
             # Fix vita.toolchain.cmake (https://github.com/vitasdk/vita-toolchain/pull/253)
-            job.source_cmd = "sed -i -E 's/set\( PKG_CONFIG_EXECUTABLE \"\$\{VITASDK}\/bin\/arm-vita-eabi-pkg-config\" )/set( PKG_CONFIG_EXECUTABLE \"${VITASDK}\/bin\/arm-vita-eabi-pkg-config\" CACHE PATH \"Path of pkg-config executable\" )/' ${VITASDK}/share/vita.toolchain.cmake"
+            job.source_cmd = r"""sed -i -E 's#set\( PKG_CONFIG_EXECUTABLE "\$\{VITASDK}/bin/arm-vita-eabi-pkg-config" \)#set( PKG_CONFIG_EXECUTABLE "${VITASDK}/bin/arm-vita-eabi-pkg-config" CACHE PATH "Path of pkg-config executable" )#' ${VITASDK}/share/vita.toolchain.cmake"""
             job.clang_tidy = False
             job.run_tests = False
             job.shared = False
@@ -609,6 +621,9 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
 
     if fpic is not None:
         job.cmake_arguments.append(f"-DCMAKE_POSITION_INDEPENDENT_CODE={tf(fpic)}")
+
+    if job.container:
+        job.sudo = ""
 
     return job
 
