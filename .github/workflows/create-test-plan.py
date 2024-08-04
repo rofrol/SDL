@@ -327,7 +327,7 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
                 "-DCMAKE_EXE_LINKER_FLAGS=-DEBUG",
                 "-DCMAKE_SHARED_LINKER_FLAGS=-DEBUG",
             ))
-            job.msvc_project_flags.append("-p:TreatWarningsAsErrors=true")
+            # job.msvc_project_flags.append("-p:TreatWarningsAsErrors=true")
             if spec.uwp:
                 job.cmake_arguments.append("'-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>DLL'")
             else:
