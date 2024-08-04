@@ -137,11 +137,13 @@ static SDL_bool SDL_ValidMetadataProperty(const char *name)
 
 int SDL_SetAppMetadataProperty(const char *name, const char *value)
 {
+    float result;
     if (!SDL_ValidMetadataProperty(name)) {
         return SDL_InvalidParamError("name");
     }
 
-    return SDL_SetStringProperty(SDL_GetGlobalProperties(), name, value);
+    result = SDL_SetStringProperty(SDL_GetGlobalProperties(), name, value);
+    return result;
 }
 
 const char *SDL_GetAppMetadataProperty(const char *name)

@@ -652,7 +652,7 @@ def main():
     all_level_keys = (
         # Level 1
         (
-            "haiku",
+            "msvc-gdk-x64",
         ),
     )
 
