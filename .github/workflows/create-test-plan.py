@@ -327,6 +327,7 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
                 "-DCMAKE_EXE_LINKER_FLAGS=-DEBUG",
                 "-DCMAKE_SHARED_LINKER_FLAGS=-DEBUG",
             ))
+            job.msvc_project_flags.append("-p:TreatWarningsAsErrors=true")
             if spec.uwp:
                 job.cmake_arguments.append("'-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>DLL'")
             else:
@@ -348,14 +349,14 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
             if spec.msvc_project:
                 match spec.msvc_arch:
                     case MsvcArch.X86:
-                        msvc_platform = "Win32"
+                        msbuild_platform = "Win32"
                     case MsvcArch.X64:
-                        msvc_platform = "x64"
+                        msbuild_platform = "x64"
                     case _:
                         raise ValueError(f"Unsupported vcxproj architecture (arch={spec.msvc_arch})")
                 if spec.gdk:
-                    msvc_platform = f"Gaming.Desktop.{msvc_platform}"
-                job.msvc_project_flags.append(f"-p:Platform={msvc_platform}")
+                    msbuild_platform = f"Gaming.Desktop.{msbuild_platform}"
+                job.msvc_project_flags.append(f"-p:Platform={msbuild_platform}")
             match spec.msvc_arch:
                 case MsvcArch.X86:
                     job.msvc_vcvars = "x64_x86"

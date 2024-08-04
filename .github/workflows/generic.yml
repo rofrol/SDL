@@ -115,7 +115,7 @@ jobs:
         with:
           type: ${{ matrix.platform.setup-vita-gles-type }}
 
-      - name: 'Pollute toolchain with "bad SDL headers'
+      - name: 'Pollute toolchain with "bad" SDL headers'
         if: ${{ matrix.platform.pollute-directories != '' }}
         #shell: ${{ matrix.platform.shell }}
         run: |
