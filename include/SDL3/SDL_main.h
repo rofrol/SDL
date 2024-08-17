@@ -95,6 +95,7 @@
         #define SDLMAIN_DECLSPEC    SDL_DECLSPEC
 
     #elif defined(SDL_PLATFORM_EMSCRIPTEN)
+#if 0 /* FIXME: disabled for stdout/stderr */
         /* On Emscripten, SDL provides a main function that converts URL
            parameters that start with "SDL_" to environment variables, so
            they can be used as SDL hints, etc.
@@ -103,6 +104,7 @@
            define SDL_MAIN_HANDLED
          */
         #define SDL_MAIN_AVAILABLE
+#endif
 
     #elif defined(SDL_PLATFORM_PSP)
         /* On PSP SDL provides a main function that sets the module info,
