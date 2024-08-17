@@ -503,7 +503,12 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
             job.ldflags.extend((
                 "--source-map-base", "/",
             ))
-            job.pretest_cmd = "# Start local HTTP server\ncmake --build build --target serve-sdl-tests --verbose &\n"
+            job.pretest_cmd = "\n".join([
+                "# Start local HTTP server",
+                "cmake --build build --target serve-sdl-tests --verbose &",
+                "chrome --version",
+                "chromedriver --version",
+            ])
         case SdlPlatform.Ps2:
             build_parallel = False
             job.shared = False
