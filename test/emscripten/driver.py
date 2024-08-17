@@ -8,6 +8,7 @@ import shlex
 import sys
 import time
 import pathlib
+from typing import Optional
 
 from selenium import webdriver
 import selenium.common.exceptions
@@ -19,10 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 class SDLSeleniumTestDriver:
-    def __init__(self, server: str, test: str, arguments: list[str], browser: str):
+    def __init__(self, server: str, test: str, arguments: list[str], browser: str, firefox_binary: Optional[str]=None, chrome_binary: Optional[str]=None):
         self. server = server
         self.test = test
         self.arguments = arguments
+        self.chrome_binary = chrome_binary
+        self.firefox_binary = firefox_binary
         self.driver = None
         self.stdout_printed = False
         self.failed_messages = []
@@ -33,9 +36,13 @@ class SDLSeleniumTestDriver:
             case "firefox":
                 driver_contructor = webdriver.Firefox
                 driver_options = webdriver.FirefoxOptions()
+                if self.firefox_binary:
+                    driver_options.binary_location = self.firefox_binary
             case "chrome":
                 driver_contructor = webdriver.Chrome
                 driver_options = webdriver.ChromeOptions()
+                if self.chrome_binary:
+                    driver_options.binary_location = self.chrome_binary
         if driver_contructor is None:
             raise ValueError(f"Invalid {browser=}")
 
@@ -129,6 +136,8 @@ def main(args: list[str]=None) -> int:
     parser.add_argument("--browser", default="firefox", choices=["firefox", "chrome"], help="browser")
     parser.add_argument("--server", default="http://localhost:8080", help="Server where SDL tests live")
     parser.add_argument("--verbose", action="store_true", help="Verbose logging")
+    parser.add_argument("--chrome-binary", help="Chrome binary")
+    parser.add_argument("--firefox-binary", help="Firefox binary")
 
     index_double_dash = sys.argv.index("--")
     if index_double_dash < 0:
@@ -148,6 +157,8 @@ def main(args: list[str]=None) -> int:
         test=test,
         arguments=test_arguments,
         browser=args.browser,
+        chrome_binary=args.chrome_binary,
+        firefox_binary=args.firefox_binary,
     )
     sdl_test_driver.loop()
 

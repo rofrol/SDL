@@ -495,6 +495,7 @@ def spec_to_job(spec: JobSpec) -> JobDetails:
             job.cmake_arguments.extend((
                 "-DSDLTEST_BROWSER=chrome",
                 "-DSDLTEST_TIMEOUT_MULTIPLIER=4",
+                "-DSDLTEST_CHROME_BINARY=${CHROME_BINARY}",
             ))
             job.cflags.extend((
                 "-gsource-map",
