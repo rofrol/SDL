@@ -48,9 +48,17 @@ jobs:
         with:
           version: 3.1.35
       - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
         if: ${{ matrix.platform.platform == 'emscripten' }}
         with:
           install-chromedriver: true
+      - name: 'Set chrome path'
+        if: ${{ matrix.platform.platform == 'emscripten' }}
+        run: |
+          echo "${{ steps.setup-chrome.outputs.chromedriver-path }} --version"
+          ${{ steps.setup-chrome.outputs.chromedriver-path }} --version
+          echo "chromedriver --version"
+          chromedriver --version
       - uses: nttld/setup-ndk@v1
         if: ${{ matrix.platform.android-ndk }}
         id: setup-ndk
@@ -172,6 +180,7 @@ jobs:
         if: ${{ !matrix.platform.no-cmake && matrix.platform.run-tests }}
 #        shell: ${{ matrix.platform.shell }}
         run: |
+          chromedriver --version
           ${{ matrix.platform.source-cmd }}
           ${{ matrix.platform.pretest-cmd }}
           set -eu
