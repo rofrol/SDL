@@ -187,9 +187,26 @@ jobs:
           set -eu
           export SDL_TESTS_QUICK=1
           ctest -VV --test-dir build/ -j2
-          if test "${{ runner.os }}" = "Linux"; then
-            # This should show us the SDL_REVISION
+
+          # This should show us the SDL_REVISION
+          # FIXME: move this to create-test-plan.py
+          echo "SDL_REVISION in shared library:"
+          if test -e "build/libSDL3.so.0"; then
             strings build/libSDL3.so.0 | grep SDL-
+          elif test -e "build/SDL3.dll" ; then
+            strings build/SDL3.dll | grep SDL-
+          elif test -e "build/libSDL3.0.dylib" ; then
+            strings build/libSDL3.0.dylib | grep SDL-
+          else
+            echo "<other type of library>"
+          fi
+          echo "SDL_REVISION in static library:"
+          if test -e "build/libSDL3.a" ; then
+            strings build/libSDL3.a | grep SDL-
+          elif test -e "build/SDL3-static.lib" ; then
+            strings build/SDL3-static.lib | grep SDL-
+          else
+            echo "<other type of library>"
           fi
       - name: "Build test apk's (CMake)"
         id: apks
