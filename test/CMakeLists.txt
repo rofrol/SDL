@@ -614,7 +614,6 @@ endif()
 set(TESTS_ENVIRONMENT
     SDL_AUDIO_DRIVER=dummy
     SDL_VIDEO_DRIVER=dummy
-    PATH=$<TARGET_FILE_DIR:SDL3::${sdl_name_component}>
 )
 
 set(SDLTEST_TIMEOUT_MULTIPLIER "1" CACHE STRING "SDL test time-out multiplier")
@@ -651,6 +650,9 @@ function(add_sdl_test TEST TARGET)
             COMMAND ${command}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
+        if(WIN32 AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.27")
+            set_property(TEST ${TEST} APPEND PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_RUNTIME_DLL_DIRS:${TEST}>")
+        endif()
         if(NOT notrackmem)
             set_property(TEST ${TEST} PROPERTY FAIL_REGULAR_EXPRESSION "Total: [0-9]+\\.[0-9]+ Kb in [1-9][0-9]* allocations")
         endif()
