@@ -47,6 +47,10 @@ jobs:
         if: ${{ matrix.platform.platform == 'emscripten' }}
         with:
           version: 3.1.35
+      - uses: browser-actions/setup-chrome@v1
+        if: ${{ matrix.platform.platform == 'emscripten' }}
+        with:
+          install-chromedriver: true
       - uses: nttld/setup-ndk@v1
         if: ${{ matrix.platform.android-ndk }}
         id: setup-ndk
