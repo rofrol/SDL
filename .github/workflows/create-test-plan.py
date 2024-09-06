@@ -78,8 +78,9 @@ class JobSpec:
     name: str
     os: JobOs
     platform: SdlPlatform
-    artifact: Optional[str]
+    artifact: Optional[str] = None
     container: Optional[str] = None
+    test_cflags: list[str] = dataclasses.field(default_factory=list)
     no_cmake: bool = False
     xcode: bool = False
     android_mk: bool = False
@@ -107,7 +108,7 @@ JOB_SPECS = {
     "msys2-clang64": JobSpec(name="Windows (msys2, clang64)",               os=JobOs.WindowsLatest, platform=SdlPlatform.Msys2,       artifact="SDL-mingw64-clang",      msys2_platform=Msys2Platform.Clang64, ),
     "msys2-ucrt64": JobSpec(name="Windows (msys2, ucrt64)",                 os=JobOs.WindowsLatest, platform=SdlPlatform.Msys2,       artifact="SDL-mingw64-ucrt",       msys2_platform=Msys2Platform.Ucrt64, ),
     "msvc-x64": JobSpec(name="Windows (MSVC, x64)",                         os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-VC-x64",             msvc_arch=MsvcArch.X64,   msvc_project="VisualC/SDL.sln", ),
-    "msvc-x86": JobSpec(name="Windows (MSVC, x86)",                         os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-VC-x86",             msvc_arch=MsvcArch.X86,   msvc_project="VisualC/SDL.sln", ),
+    "msvc-x86": JobSpec(name="Windows (MSVC, x86)",                         os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-VC-x86",             msvc_arch=MsvcArch.X86,   msvc_project="VisualC/SDL.sln", test_cflags=["-Gr"]),
     "msvc-clang-x64": JobSpec(name="Windows (MSVC, clang-cl x64)",          os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-clang-cl-x64",       msvc_arch=MsvcArch.X64,   clang_cl=True, ),
     "msvc-clang-x86": JobSpec(name="Windows (MSVC, clang-cl x86)",          os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-clang-cl-x86",       msvc_arch=MsvcArch.X86,   clang_cl=True, ),
     "msvc-arm32": JobSpec(name="Windows (MSVC, ARM)",                       os=JobOs.WindowsLatest, platform=SdlPlatform.Msvc,        artifact="SDL-VC-arm32",           msvc_arch=MsvcArch.Arm32, ),
@@ -166,6 +167,7 @@ class JobDetails:
     build_tests: bool = True
     container: str = ""
     cmake_build_type: str = "RelWithDebInfo"
+    test_cmake_build_type: str = "Debug"
     shell: str = "sh"
     sudo: str = "sudo"
     cmake_config_emulator: str = ""
@@ -175,6 +177,8 @@ class JobDetails:
     cmake_toolchain_file: str = ""
     cmake_arguments: list[str] = dataclasses.field(default_factory=list)
     cmake_build_arguments: list[str] = dataclasses.field(default_factory=list)
+    test_cmake_arguments: list[str] = dataclasses.field(default_factory=list)
+    test_full: bool = False
     clang_tidy: bool = True
     cppflags: list[str] = dataclasses.field(default_factory=list)
     cc: str = ""
@@ -253,12 +257,15 @@ class JobDetails:
             "cmake-toolchain-file": self.cmake_toolchain_file,
             "clang-tidy": self.clang_tidy,
             "cmake-arguments": my_shlex_join(self.cmake_arguments),
+            "test-cmake-arguments": my_shlex_join(self.test_cmake_arguments),
+            "test-full": self.test_full,
             "cmake-build-arguments": my_shlex_join(self.cmake_build_arguments),
             "shared": self.shared,
             "static": self.static,
             "shared-lib": self.shared_lib.value if self.shared_lib else None,
             "static-lib": self.static_lib.value if self.static_lib else None,
             "cmake-build-type": self.cmake_build_type,
+            "test-cmake-build-type": self.test_cmake_build_type,
             "run-tests": self.run_tests,
             "android-apks": my_shlex_join(self.android_apks),
             "android-gradle": self.android_gradle,
@@ -704,15 +711,23 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
         case _:
             raise ValueError(f"Unsupported platform={spec.platform}")
 
+    if spec.test_cflags:
+        job.test_full = True
+
+    job.test_cmake_arguments.extend(job.cmake_arguments)
     if not build_parallel:
         job.cmake_build_arguments.append("-j1")
-    if job.cflags:
+    if job.cflags or spec.test_cflags:
         job.cmake_arguments.append(f"-DCMAKE_C_FLAGS=\"{my_shlex_join(job.cflags)}\"")
+        job.test_cmake_arguments.append(f"-DCMAKE_C_FLAGS=\"{my_shlex_join(job.cflags + spec.test_cflags)}\"")
     if job.cxxflags:
         job.cmake_arguments.append(f"-DCMAKE_CXX_FLAGS=\"{my_shlex_join(job.cxxflags)}\"")
+        job.test_cmake_arguments.append(f"-DCMAKE_CXX_FLAGS=\"{my_shlex_join(job.cflags)}\"")
     if job.ldflags:
         job.cmake_arguments.append(f"-DCMAKE_SHARED_LINKER_FLAGS=\"{my_shlex_join(job.ldflags)}\"")
         job.cmake_arguments.append(f"-DCMAKE_EXE_LINKER_FLAGS=\"{my_shlex_join(job.ldflags)}\"")
+        job.test_cmake_arguments.append(f"-DCMAKE_SHARED_LINKER_FLAGS=\"{my_shlex_join(job.ldflags)}\"")
+        job.test_cmake_arguments.append(f"-DCMAKE_EXE_LINKER_FLAGS=\"{my_shlex_join(job.ldflags)}\"")
     job.pretest_cmd = "\n".join(pretest_cmd)
     def tf(b):
         return "ON" if b else "OFF"

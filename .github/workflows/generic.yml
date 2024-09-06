@@ -194,16 +194,6 @@ jobs:
           ${{ (matrix.platform.shared-lib && format('strings build/{0} | grep SDL-', matrix.platform.shared-lib)) || 'echo "<Shared library not supported by platform>"' }}
           echo "Static library:"
           ${{ (matrix.platform.static-lib && format('strings build/{0} | grep SDL-', matrix.platform.static-lib)) || 'echo "<Static library not supported by platform>"' }}
-      - name: 'Run build-time tests (CMake)'
-        id: tests
-        if: ${{ !matrix.platform.no-cmake && matrix.platform.run-tests }}
-#        shell: ${{ matrix.platform.shell }}
-        run: |
-          ${{ matrix.platform.source-cmd }}
-          ${{ matrix.platform.pretest-cmd }}
-          set -eu
-          export SDL_TESTS_QUICK=1
-          ctest -VV --test-dir build/ -j2
       - name: "Build test apk's (CMake)"
         id: apks
         if: ${{ steps.build.outcome == 'success' && matrix.platform.android-apks != '' }}
@@ -252,12 +242,25 @@ jobs:
           ${{ matrix.platform.source-cmd }}
           ${{ matrix.platform.cmake-config-emulator }} cmake -S cmake/test -B cmake_test_build -GNinja \
             ${{ matrix.platform.cmake-toolchain-file != '' && format('-DCMAKE_TOOLCHAIN_FILE={0}', matrix.platform.cmake-toolchain-file) || '' }} \
+            -DTEST_FULL=${{ matrix.platform.test-full }} \
             -DTEST_SHARED=${{ matrix.platform.shared }} \
             -DTEST_STATIC=${{ matrix.platform.static }} \
-            ${{ matrix.platform.cmake-arguments }} \
-            -DCMAKE_BUILD_TYPE=${{ matrix.platform.cmake-build-type }} \
+            ${{ matrix.platform.test-cmake-arguments }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.platform.test-cmake-build-type }} \
             -DCMAKE_PREFIX_PATH="${{ steps.install.outputs.prefix }}"
-          cmake --build cmake_test_build --verbose --config ${{ matrix.platform.cmake-build-type }} -- ${{ matrix.platform.cmake-build-arguments }}
+          cmake --build cmake_test_build --verbose --config ${{ matrix.platform.test-cmake-build-type }} -- ${{ matrix.platform.cmake-build-arguments }}
+      - name: 'Run build-time tests (CMake)'
+        id: tests
+        if: ${{ !matrix.platform.no-cmake && matrix.platform.run-tests }}
+        #        shell: ${{ matrix.platform.shell }}
+        run: |
+          ${{ matrix.platform.source-cmd }}
+          ${{ matrix.platform.pretest-cmd }}
+          set -eu
+          export SDL_TESTS_QUICK=1
+          ctest -VV --test-dir build/ -j2
+          
+          ${{ (matrix.platform.test-full && 'ctest -VV --test-dir cmake_test_build/ -j2') || '' }}
       - name: 'Extract CC/CXX/CFLAGS/CXXFLAGS from CMake toolchain'
         if: ${{ steps.install.outcome == 'success' && matrix.platform.cc-from-cmake }}
 #        shell: ${{ matrix.platform.shell }}
