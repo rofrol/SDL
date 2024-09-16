@@ -533,8 +533,10 @@ void SDL_SYS_DestroyProcess(SDL_Process *process)
     if (io) {
         SDL_CloseIO(io);
     }
-    CloseHandle(data->process_information.hThread);
-    CloseHandle(data->process_information.hProcess);
+    if (data) {
+        CloseHandle(data->process_information.hThread);
+        CloseHandle(data->process_information.hProcess);
+    }
     SDL_free(data);
 }
 
