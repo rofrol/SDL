@@ -217,6 +217,8 @@ class JobDetails:
     cpactions_install_cmd: str = ""
     setup_vita_gles_type: str = ""
     check_sources: bool = False
+    setup_python: bool = False
+    pypi_packages: list[str] = dataclasses.field(default_factory=list)
 
     def to_workflow(self, enable_artifacts: bool) -> dict[str, str|bool]:
         data = {
@@ -280,6 +282,8 @@ class JobDetails:
             "setup-vita-gles-type": self.setup_vita_gles_type,
             "setup-gdk-folder": self.setup_gdk_folder,
             "check-sources": self.check_sources,
+            "setup-python": self.setup_python,
+            "pypi-packages": my_shlex_join(self.pypi_packages),
         }
         return {k: v for k, v in data.items() if v != ""}
 
@@ -530,7 +534,6 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
             job.cmake_config_emulator = "emcmake"
             job.cmake_build_type = "Debug"
             job.test_pkg_config = False
-            job.apt_packages.append("python3-selenium")
             job.cmake_arguments.extend((
                 "-DSDLTEST_BROWSER=chrome",
                 "-DSDLTEST_TIMEOUT_MULTIPLIER=4",
@@ -550,6 +553,8 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
                 "chromedriver --version",
             ))
             job.static_lib = StaticLibType.A
+            job.setup_python = True
+            job.pypi_packages.append("selenium")
         case SdlPlatform.Ps2:
             build_parallel = False
             job.shared = False
@@ -698,6 +703,7 @@ def spec_to_job(spec: JobSpec, key: str, trackmem_symbol_names: bool) -> JobDeta
 
     if "ubuntu" in spec.name.lower():
         job.check_sources = True
+        job.setup_python = True
 
     if not build_parallel:
         job.cmake_build_arguments.append("-j1")
